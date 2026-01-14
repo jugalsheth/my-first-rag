@@ -1,0 +1,31 @@
+Retrieval-Augmented Generation (RAG) is a powerful technique that combines information retrieval with generative AI models. 
+
+RAG works by first retrieving relevant documents or passages from a knowledge base, and then using those retrieved contexts to inform a language model's response. This approach allows AI systems to access up-to-date information and cite specific sources.
+
+The typical RAG pipeline consists of several key steps:
+1. Document ingestion: Raw documents are processed and split into smaller chunks
+2. Embedding generation: Each chunk is converted into a vector embedding using an embedding model
+3. Vector storage: Embeddings are stored in a vector database for efficient similarity search
+4. Query processing: When a question is asked, it is also converted to an embedding
+5. Retrieval: The most similar document chunks are retrieved based on vector similarity
+6. Generation: The retrieved context is passed to a language model along with the query to generate an answer
+
+RAG systems are particularly useful because they can:
+- Access external knowledge without retraining the model
+- Provide citations and traceability for answers
+- Handle domain-specific information effectively
+- Reduce hallucinations by grounding responses in retrieved documents
+
+Common vector databases used in RAG include ChromaDB, Pinecone, Weaviate, and FAISS. ChromaDB is a popular choice for local development because it's lightweight, easy to use, and doesn't require external API keys.
+
+Embedding models like sentence-transformers provide high-quality vector representations of text. Popular models include all-MiniLM-L6-v2, all-mpnet-base-v2, and multilingual models for non-English text.
+
+The quality of a RAG system depends on several factors:
+- Chunk size and overlap strategy
+- Embedding model selection
+- Number of retrieved documents (top-k)
+- Prompt engineering for the generation step
+- Re-ranking strategies for better relevance
+
+RAG has been successfully applied to chatbots, question-answering systems, document analysis tools, and knowledge management applications.
+
