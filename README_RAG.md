@@ -12,6 +12,7 @@
 
 ## Run Tomorrow Morning
 
+### Standard Mode
 Simply execute:
 ```bash
 python3 rag_system.py
@@ -22,6 +23,18 @@ The system will:
 - Load `sample_document.txt` into ChromaDB
 - Run example queries
 - Enter interactive mode for you to ask questions
+
+### Benchmark Mode
+To compare three embedding models (all-MiniLM-L6-v2, all-mpnet-base-v2, BAAI/bge-small-en-v1.5):
+```bash
+python3 rag_system.py benchmark
+```
+
+This will:
+- Test each model with 3 specific questions about RAG
+- Create separate ChromaDB collections for each model
+- Print retrieved chunks for easy comparison
+- Clean up temporary collections after completion
 
 ## Files Created
 

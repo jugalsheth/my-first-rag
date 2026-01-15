@@ -16,9 +16,13 @@ from typing import List, Tuple
 
 
 class SimpleRAG:
-    def __init__(self, collection_name: str = "rag_documents"):
+    def __init__(self, collection_name: str = "rag_documents", model_name: str = "all-MiniLM-L6-v2"):
         """
         Initialize the RAG system with ChromaDB and sentence-transformers
+        
+        Args:
+            collection_name: Name of the ChromaDB collection
+            model_name: Name of the embedding model to use
         """
         # Initialize ChromaDB client (local, persistent)
         self.client = chromadb.PersistentClient(
@@ -33,9 +37,10 @@ class SimpleRAG:
         )
         
         # Load embedding model (free, runs locally)
-        print("Loading embedding model...")
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        print("Model loaded!")
+        print(f"Loading embedding model: {model_name}...")
+        self.embedding_model = SentenceTransformer(model_name)
+        self.model_name = model_name
+        print(f"Model {model_name} loaded!")
     
     def load_document(self, file_path: str, chunk_size: int = 500, chunk_overlap: int = 50):
         """
@@ -86,12 +91,18 @@ class SimpleRAG:
         print(f"Stored {len(chunks)} chunks in ChromaDB")
         return len(chunks)
     
-    def query(self, question: str, top_k: int = 3) -> Tuple[str, List[str]]:
+    def query(self, question: str, top_k: int = 3, verbose: bool = True) -> Tuple[str, List[str]]:
         """
         Query the RAG system with a question
         Returns: (answer, list of retrieved contexts)
+        
+        Args:
+            question: The question to ask
+            top_k: Number of top results to retrieve
+            verbose: Whether to print retrieval details
         """
-        print(f"\nQuery: {question}")
+        if verbose:
+            print(f"\nQuery: {question}")
         
         # Generate embedding for the question
         query_embedding = self.embedding_model.encode([question]).tolist()[0]
@@ -105,10 +116,11 @@ class SimpleRAG:
         # Extract retrieved documents
         retrieved_docs = results['documents'][0] if results['documents'] else []
         
-        print(f"\nRetrieved {len(retrieved_docs)} relevant chunks:")
-        for i, doc in enumerate(retrieved_docs, 1):
-            print(f"\n--- Chunk {i} ---")
-            print(doc[:200] + "..." if len(doc) > 200 else doc)
+        if verbose:
+            print(f"\nRetrieved {len(retrieved_docs)} relevant chunks:")
+            for i, doc in enumerate(retrieved_docs, 1):
+                print(f"\n--- Chunk {i} ---")
+                print(doc[:200] + "..." if len(doc) > 200 else doc)
         
         # Simple answer generation: combine retrieved contexts
         # In a production system, you'd use an LLM here (like OpenAI, Anthropic, or local model)
@@ -128,6 +140,77 @@ class SimpleRAG:
             metadata={"hnsw:space": "cosine"}
         )
         print("Collection cleared!")
+
+
+def run_benchmark():
+    """
+    Benchmark function to compare three embedding models
+    """
+    # Models to test
+    models = [
+        "all-MiniLM-L6-v2",
+        "all-mpnet-base-v2",
+        "BAAI/bge-small-en-v1.5"
+    ]
+    
+    # Questions to test
+    questions = [
+        "What is the main difference between Naive and Advanced RAG?",
+        "How does HyDE improve retrieval?",
+        "Explain the concept of a Semantic Router."
+    ]
+    
+    doc_path = "sample_document.txt"
+    if not os.path.exists(doc_path):
+        print(f"Error: {doc_path} not found!")
+        return
+    
+    print("=" * 80)
+    print("RAG EMBEDDING MODEL BENCHMARK")
+    print("=" * 80)
+    
+    # Loop through each model
+    for model_name in models:
+        print("\n" + "=" * 80)
+        print(f"MODEL: {model_name}")
+        print("=" * 80)
+        
+        # Create a unique collection name for this model
+        collection_name = f"benchmark_{model_name.replace('/', '_').replace('-', '_')}"
+        
+        # Initialize RAG with this model
+        rag = SimpleRAG(collection_name=collection_name, model_name=model_name)
+        
+        # Load document into this model's collection
+        rag.load_document(doc_path)
+        
+        # Test each question
+        for i, question in enumerate(questions, 1):
+            print("\n" + "-" * 80)
+            print(f"QUESTION {i}: {question}")
+            print("-" * 80)
+            
+            # Query and get results
+            answer, retrieved_chunks = rag.query(question, top_k=3, verbose=False)
+            
+            # Print retrieved chunks for comparison
+            print(f"\nRetrieved Chunks (Top 3):")
+            for j, chunk in enumerate(retrieved_chunks, 1):
+                print(f"\n--- Chunk {j} ---")
+                print(chunk)
+                print()
+        
+        # Clean up: delete the temporary collection
+        try:
+            rag.client.delete_collection(name=collection_name)
+            print(f"\nCleaned up collection: {collection_name}")
+        except:
+            pass
+    
+    print("\n" + "=" * 80)
+    print("BENCHMARK COMPLETE")
+    print("=" * 80)
+    print("\nCompare the retrieved chunks above to see how each model performs!")
 
 
 def main():
@@ -186,5 +269,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    
+    # Check if user wants to run benchmark
+    if len(sys.argv) > 1 and sys.argv[1] == "benchmark":
+        run_benchmark()
+    else:
+        main()
 
