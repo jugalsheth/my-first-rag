@@ -36,11 +36,25 @@ This will:
 - Print retrieved chunks for easy comparison
 - Clean up temporary collections after completion
 
+### Chunking Experiment
+To test different chunking strategies (Small: 256 tokens, Medium: 512 tokens, Large: 1024 tokens):
+```bash
+python3 chunk_experiment.py
+```
+
+This will:
+- Test 3 chunking strategies using RecursiveCharacterTextSplitter from LangChain
+- Index each strategy into separate ChromaDB collections
+- Query all three with the same question for side-by-side comparison
+- Show similarity scores, context length, and overlap analysis
+- Help you understand the trade-offs between chunk sizes
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
 - `sample_document.txt` - Sample RAG content to query
 - `rag_system.py` - Complete RAG system implementation
+- `chunk_experiment.py` - Chunking strategy comparison tool
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
