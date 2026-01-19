@@ -49,12 +49,56 @@ This will:
 - Show similarity scores, context length, and overlap analysis
 - Help you understand the trade-offs between chunk sizes
 
+### RAGAS Evaluation (Production Scoring)
+To automatically score and compare chunking strategies using RAGAS metrics:
+```bash
+# Basic mode (template-based answers)
+python3 rag_evaluator.py
+
+# With Google Gemini for better answer generation (recommended)
+# Option 1: Set environment variable directly
+export GEMINI_API_KEY=your_gemini_key_here
+python3 rag_evaluator.py --gemini
+
+# Option 2: Use .env file (recommended - more secure)
+# Create a .env file with: GEMINI_API_KEY=your_key_here
+python3 rag_evaluator.py --gemini
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. For best results, set `GEMINI_API_KEY` environment variable
+
+**Setting up API Key Securely:**
+```bash
+# Create a .env file (this file is gitignored and won't be committed)
+echo "GEMINI_API_KEY=your_actual_key_here" > .env
+
+# Or set it as an environment variable
+export GEMINI_API_KEY=your_actual_key_here
+```
+
+**⚠️ Security Note:** Never commit API keys to git! The `.env` file is automatically ignored.
+
+**What it evaluates:**
+- **Faithfulness**: Does the answer come from retrieved context? (Anti-hallucination)
+- **Answer Relevancy**: Does the answer actually answer the question?
+- **Context Precision**: Are the retrieved chunks actually relevant?
+- **Context Recall**: Does the context contain all needed information?
+
+**Output:**
+- Comprehensive comparison table showing which strategy wins
+- Winners by metric (the "smoking gun" analysis)
+- Production recommendation based on data
+- Natural language insights explaining the results
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
 - `sample_document.txt` - Sample RAG content to query
 - `rag_system.py` - Complete RAG system implementation
 - `chunk_experiment.py` - Chunking strategy comparison tool
+- `rag_evaluator.py` - RAGAS-based evaluation system for production scoring
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
@@ -63,9 +107,23 @@ This will:
 - **Change embedding model:** Edit the model name in `rag_system.py` (line 28)
 - **Add LLM:** Enhance the `query()` method to use OpenAI, Anthropic, or a local model for better answers
 
+## Research Workflow
+
+1. **Setup**: Run `chunk_experiment.py` to create chunking strategy collections
+2. **Evaluate**: Run `rag_evaluator.py` to score each strategy with RAGAS metrics
+3. **Decide**: Use the data-driven recommendations to choose production settings
+
+## Security
+
+- **API Keys**: Never commit API keys to the repository
+- **`.env` file**: Create a `.env` file for local API keys (automatically gitignored)
+- **Environment Variables**: Use environment variables for API keys in production
+- **Git History**: If you accidentally committed an API key, rotate it immediately and remove it from git history
+
 ## Notes
 
 - ChromaDB stores data locally in `./chroma_db/`
 - First run downloads the embedding model (~90MB)
-- All processing happens locally - no API keys needed!
+- RAGAS evaluation works without API keys (uses template answers)
+- For best evaluation results, use Google Gemini API (set `GEMINI_API_KEY` in `.env` file or as environment variable)
 
