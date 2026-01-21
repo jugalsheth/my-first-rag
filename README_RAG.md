@@ -137,6 +137,29 @@ python3 multi_query_rag.py --collection chunk_experiment_medium "Your question h
 - Evaluating the cost/benefit trade-off of multi-query approaches
 - Research: Data for your Medium article on query expansion techniques
 
+### HyDE RAG (Hypothetical Document Embeddings)
+To test HyDE (generate a hypothetical answer, embed it, retrieve, and compare vs standard retrieval):
+
+```bash
+# A/B test (3 default questions)
+python3 hyde_rag.py
+
+# Single custom question (recommended starting point)
+python3 hyde_rag.py --single "Explain the benefits of query rewriting in Advanced RAG"
+
+# Choose a specific collection + top-k
+python3 hyde_rag.py --collection chunk_experiment_small --topk 3
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. Set `GEMINI_API_KEY` (recommended). If not set, HyDE uses a template hypothetical answer (still works, less powerful).
+
+**What it shows:**
+- The generated hypothetical answer (HyDE)
+- Top-k chunks retrieved by HyDE vs standard
+- Which method found the “golden chunk” (highest relevance vs the original question)
+
 ## Files Created
 
 - `requirements.txt` - All dependencies

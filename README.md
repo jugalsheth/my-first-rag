@@ -170,6 +170,32 @@ python3 multi_query_rag.py --collection chunk_experiment_medium "Your question h
 
 ---
 
+### Step 5: HyDE RAG (Hypothetical Document Embeddings)
+
+Test HyDE by generating a hypothetical answer with Gemini, embedding it, and retrieving based on that embedding:
+
+```bash
+# Run A/B test (3 questions)
+python3 hyde_rag.py
+
+# Run a single custom question
+python3 hyde_rag.py --single "Explain the benefits of query rewriting in Advanced RAG"
+
+# Pick a specific collection + top-k
+python3 hyde_rag.py --collection chunk_experiment_medium --topk 3
+```
+
+**What it does:**
+- Standard retrieval: embed the question → retrieve top-k
+- HyDE retrieval: generate ~200-word hypothetical answer → embed it → retrieve top-k
+- Shows the hypothetical answer + both retrieval sets side-by-side
+- Reports which method found the “golden chunk” (highest relevance vs the original question)
+
+**Trade-off:**
+- HyDE adds 1 LLM call per question (latency + cost) but can improve recall on hard queries.
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -184,9 +210,12 @@ Day3/
 ├── chunk_experiment.py      # Chunking strategy comparison
 ├── rag_evaluator.py         # RAGAS evaluation framework
 ├── multi_query_rag.py       # Multi-query RAG with query expansion
+├── hyde_rag.py              # HyDE vs Standard retrieval experiment
 │
 ├── sample_document.txt      # Test corpus (RAG documentation)
 ├── chunk_token_distribution.png  # Visualization output
+├── multiquery_exhibit.png   # Exhibit: Multi-query experiment diagram (PNG)
+├── research_exhibit.png     # Exhibit: Research timeline summary (PNG)
 │
 ├── MEDIUM_ARTICLE.md        # Medium article draft
 ├── MEDIUM_FORMATTING_GUIDE.md  # Formatting guide for Medium
@@ -365,7 +394,10 @@ python3 rag_system.py benchmark
 # 5. Test query expansion (optional)
 python3 multi_query_rag.py "Your question here"
 
-# 6. Analyze results and make recommendations
+# 6. Test HyDE (optional)
+python3 hyde_rag.py --single "Your question here"
+
+# 7. Analyze results and make recommendations
 # (Results displayed in terminal)
 ```
 

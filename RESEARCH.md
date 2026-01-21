@@ -155,6 +155,40 @@ This document tracks research findings and discoveries as we build and test our 
 
 ---
 
+## Day 9: HyDE RAG (Hypothetical Document Embeddings)
+
+**Date:** 2026-01-20
+
+**What we built:**
+- HyDE experiment runner using your Day 3 ChromaDB collection
+- A/B comparison:
+  - **Standard retrieval**: embed the question → retrieve
+  - **HyDE retrieval**: generate a ~200-word hypothetical answer with Gemini → embed it → retrieve
+
+**What we show (per question):**
+- The generated hypothetical answer
+- Top-3 chunks retrieved by **HyDE**
+- Top-3 chunks retrieved by **Standard**
+- A simple “golden chunk” heuristic:
+  - Score each retrieved chunk by cosine similarity to the original question (embedding space)
+  - Golden chunk = highest-scoring chunk across Standard ∪ HyDE
+  - Report whether Standard and/or HyDE retrieved it
+
+**A/B Test Questions:**
+1. Technical: “Explain the benefits of query rewriting”
+2. Conceptual: “Why does HyDE improve retrieval?”
+3. Comparison: “What’s the difference between HyDE and standard retrieval?”
+
+**Cost / Latency Analysis (conceptual):**
+- Standard: 1 embedding call
+- HyDE: 1 LLM call + 1 embedding call
+- Trade-off: potential retrieval improvement vs higher cost/latency
+
+**Files Created:**
+- `hyde_rag.py` - HyDE vs Standard retrieval experiment runner
+
+---
+
 ## Research Methodology
 
 ### Evaluation Framework
