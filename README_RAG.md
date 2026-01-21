@@ -92,6 +92,51 @@ export GEMINI_API_KEY=your_actual_key_here
 - Production recommendation based on data
 - Natural language insights explaining the results
 
+### Multi-Query RAG (Query Expansion)
+To test query expansion using Gemini to generate multiple query variations:
+
+```bash
+# Basic usage (uses default question and collection)
+python3 multi_query_rag.py
+
+# Custom question
+python3 multi_query_rag.py "What are the trade-offs of using small vs large chunks in RAG?"
+
+# Use a different collection (e.g., medium or large chunks)
+python3 multi_query_rag.py --collection chunk_experiment_medium "Your question here"
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. Set `GEMINI_API_KEY` environment variable (required for query expansion)
+
+**What it does:**
+1. Takes your original question
+2. Uses Gemini to generate 3 query variations (different phrasings/angles)
+3. Searches ChromaDB with all 3 queries + original
+4. Combines and deduplicates results
+5. Compares to single-query baseline
+6. Calculates coverage improvement percentage
+
+**Output:**
+- Generated query variations (see how Gemini rephrased your question)
+- Coverage analysis: How many unique chunks did multi-query find vs single query?
+- Coverage improvement percentage
+- Side-by-side chunk comparison (shows which chunks are "new")
+- Query-by-query breakdown (what each variation found)
+- Token cost trade-off analysis (3x queries = 3x API calls)
+
+**Key Metrics:**
+- **Coverage Improvement**: `(Multi-Query Chunks - Single Query Chunks) / Single Query Chunks * 100%`
+- **New Chunks Found**: Unique chunks that only multi-query discovered
+- **Overlap Analysis**: Which chunks were found by both approaches
+
+**Use Cases:**
+- Testing if query expansion improves retrieval coverage
+- Understanding how different phrasings find different content
+- Evaluating the cost/benefit trade-off of multi-query approaches
+- Research: Data for your Medium article on query expansion techniques
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
@@ -99,6 +144,7 @@ export GEMINI_API_KEY=your_actual_key_here
 - `rag_system.py` - Complete RAG system implementation
 - `chunk_experiment.py` - Chunking strategy comparison tool
 - `rag_evaluator.py` - RAGAS-based evaluation system for production scoring
+- `multi_query_rag.py` - Multi-query RAG with query expansion comparison
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
@@ -111,7 +157,8 @@ export GEMINI_API_KEY=your_actual_key_here
 
 1. **Setup**: Run `chunk_experiment.py` to create chunking strategy collections
 2. **Evaluate**: Run `rag_evaluator.py` to score each strategy with RAGAS metrics
-3. **Decide**: Use the data-driven recommendations to choose production settings
+3. **Query Expansion**: Run `multi_query_rag.py` to test multi-query retrieval
+4. **Decide**: Use the data-driven recommendations to choose production settings
 
 ## Security
 

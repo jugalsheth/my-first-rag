@@ -136,6 +136,38 @@ python3 rag_system.py benchmark
 - `all-mpnet-base-v2` - Higher quality
 - `BAAI/bge-small-en-v1.5` - State-of-the-art
 
+### Step 4: Multi-Query RAG (Query Expansion)
+
+Test query expansion using Gemini to generate multiple query variations:
+
+```bash
+# Basic usage (uses default question and collection)
+python3 multi_query_rag.py
+
+# Custom question
+python3 multi_query_rag.py "What are the trade-offs of using small vs large chunks in RAG?"
+
+# Use a different collection
+python3 multi_query_rag.py --collection chunk_experiment_medium "Your question here"
+```
+
+**What it does:**
+- Takes your original question
+- Uses Gemini to generate 3 query variations (different phrasings/angles)
+- Searches ChromaDB with all 3 queries + original
+- Combines and deduplicates results
+- Compares to single-query baseline
+
+**Key Metrics:**
+- **Coverage Improvement**: Percentage increase in unique chunks found
+- **New Chunks Found**: Unique chunks only discovered by multi-query
+- **Token Cost Trade-off**: 3x queries = 3x API calls
+
+**Use Cases:**
+- Testing if query expansion improves retrieval coverage
+- Understanding how different phrasings find different content
+- Evaluating cost/benefit trade-off of multi-query approaches
+
 ---
 
 ## 📁 Repository Structure
@@ -144,15 +176,20 @@ python3 rag_system.py benchmark
 Day3/
 ├── README.md                 # This file - research overview
 ├── README_RAG.md            # Quick start guide
+├── RESEARCH.md              # Research log and findings
 ├── requirements.txt         # Python dependencies
 ├── .gitignore               # Git ignore rules
 │
 ├── rag_system.py            # Core RAG system implementation
 ├── chunk_experiment.py      # Chunking strategy comparison
 ├── rag_evaluator.py         # RAGAS evaluation framework
+├── multi_query_rag.py       # Multi-query RAG with query expansion
 │
 ├── sample_document.txt      # Test corpus (RAG documentation)
 ├── chunk_token_distribution.png  # Visualization output
+│
+├── MEDIUM_ARTICLE.md        # Medium article draft
+├── MEDIUM_FORMATTING_GUIDE.md  # Formatting guide for Medium
 │
 └── chroma_db/              # Vector database (auto-generated)
     └── [collections]       # Indexed document chunks
@@ -203,6 +240,21 @@ Production-grade evaluation using RAGAS framework:
 - Answer Relevancy (question-answer alignment)
 - Context Precision (retrieval quality)
 - Context Recall (information completeness)
+
+### 4. Multi-Query RAG (`multi_query_rag.py`)
+
+Query expansion system for improved retrieval coverage:
+
+**Features:**
+- **Query Expansion**: Uses Gemini to generate 3 query variations
+- **Multi-Query Retrieval**: Searches ChromaDB with all variations
+- **Deduplication**: Combines results, keeps highest similarity
+- **Coverage Analysis**: Calculates improvement vs single-query baseline
+
+**Use Cases:**
+- Testing query expansion effectiveness
+- Understanding retrieval coverage improvements
+- Evaluating cost/benefit of multi-query approaches
 
 ---
 
@@ -310,7 +362,10 @@ python3 rag_evaluator.py --gemini
 # 4. Compare embedding models (optional)
 python3 rag_system.py benchmark
 
-# 5. Analyze results and make recommendations
+# 5. Test query expansion (optional)
+python3 multi_query_rag.py "Your question here"
+
+# 6. Analyze results and make recommendations
 # (Results displayed in terminal)
 ```
 
@@ -364,12 +419,13 @@ The repository is configured to ignore:
 
 ### Future Research Directions
 
-- [ ] Multi-document chunking strategies
+- [ ] Multi-query RAG effectiveness analysis (Day 8 - in progress)
 - [ ] Semantic chunking (topic-based)
 - [ ] Adaptive chunk sizing based on query type
 - [ ] Re-ranking impact on chunk selection
 - [ ] Cross-lingual chunking strategies
 - [ ] Real-time chunk optimization
+- [ ] Query routing strategies
 
 ---
 
