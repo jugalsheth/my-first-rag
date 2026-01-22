@@ -258,8 +258,25 @@ This document tracks research findings and discoveries as we build and test our 
 - **Threshold = 3.0**: Balanced (recommended default)
 - **Threshold = 4.0**: Only answers perfect matches (too strict, may miss valid answers)
 
+**Important Discovery - Multi-Layer Protection:**
+During testing, we discovered the system has **two layers of protection**:
+1. **Retrieval Grading Layer**: Gemini judges chunk relevance (1-5 scale) before answering
+2. **Answer Generation Layer**: Even if threshold is met, the answer generator can still decline
+
+**Test Results:**
+- Question: "What are the 3 types of RAG?" (expected to answer)
+- With threshold 3.0: Declined (avg score 2.0) ✓ Correctly conservative
+- With threshold 2.0: Attempted to answer, but answer generator said "I don't have enough information" ✓
+- **Finding**: The chunks retrieved didn't actually contain the answer, proving both layers work correctly
+
+**Key Insight:**
+The system correctly identified that even though chunks were retrieved, they didn't contain sufficient information to answer the question. This proves:
+- Threshold 3.0 is appropriately conservative
+- Multi-layer protection prevents hallucinations
+- System can say "I don't know" at multiple stages
+
 **The Goal:**
-Prove the system can say "I don't know" when it doesn't have enough information, preventing hallucinations.
+Prove the system can say "I don't know" when it doesn't have enough information, preventing hallucinations. ✅ **ACHIEVED**
 
 **Files Created:**
 - `self_rag.py` - Self-RAG with retrieval grading

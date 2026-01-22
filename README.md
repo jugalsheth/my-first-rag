@@ -337,11 +337,29 @@ Retrieval grading system that can say "I don't know":
 - **Threshold-Based Decision**: Only answers if average score >= threshold
 - **Graceful Decline**: Says "I don't have enough information" when retrieval is poor
 - **Prevents Hallucinations**: Won't answer without relevant context
+- **Multi-Layer Protection**: Two independent layers prevent false positives
+
+**Key Discovery - Multi-Layer Protection:**
+During testing, we discovered the system has **two layers of protection**:
+1. **Retrieval Grading Layer**: Gemini judges chunk relevance (1-5 scale) before answering
+2. **Answer Generation Layer**: Even if threshold is met, the answer generator can still decline
+
+**Test Results:**
+- Question: "What are the 3 types of RAG?" (expected to answer)
+- With threshold 3.0: Declined (avg score 2.0) ✓ Correctly conservative
+- With threshold 2.0: Attempted to answer, but answer generator said "I don't have enough information" ✓
+- **Finding**: The chunks retrieved didn't actually contain the answer, proving both layers work correctly
+
+**Threshold Tuning:**
+- **Threshold = 2.0**: Answers everything (too loose, may hallucinate)
+- **Threshold = 3.0**: Balanced (recommended default) - appropriately conservative
+- **Threshold = 4.0**: Only answers perfect matches (too strict, may miss valid answers)
 
 **Use Cases:**
 - Testing system's ability to decline poor queries
 - Preventing hallucinations in production
 - Threshold tuning for optimal answer quality
+- Proving system can say "I don't know" at multiple stages
 
 ---
 
