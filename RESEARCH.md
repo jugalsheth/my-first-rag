@@ -189,6 +189,83 @@ This document tracks research findings and discoveries as we build and test our 
 
 ---
 
+## Day 9: HyDE RAG (Hypothetical Document Embeddings)
+
+**Date:** 2026-01-20
+
+**What we built:**
+- HyDE system that generates hypothetical answers before retrieval
+- Uses Gemini to create ~200-word hypothetical answer from question
+- Embeds the hypothetical answer (not the question) for retrieval
+- Compares HyDE retrieval vs standard query embedding
+
+**Key Features:**
+- **Hypothetical Answer Generation**: Gemini creates a plausible answer first
+- **Answer-Based Retrieval**: Embeds the hypothetical answer instead of the question
+- **A/B Comparison**: Side-by-side comparison with standard retrieval
+- **Golden Chunk Detection**: Identifies most relevant chunk and which method found it
+
+**Test Questions:**
+- Technical: "Explain the benefits of query rewriting"
+- Conceptual: "Why does HyDE improve retrieval?"
+- Comparison: "What's the difference between HyDE and standard retrieval?"
+
+**Key Metrics:**
+- Chunks retrieved by HyDE vs Standard
+- Relevance scores for each chunk
+- Which approach found the "golden chunk" (most relevant)
+
+**Cost Analysis:**
+- Standard: 1 embedding call
+- HyDE: 1 LLM call (generate fake answer) + 1 embedding call
+- Extra cost: ~$0.0001 per query (with Gemini)
+- Trade-off: Better retrieval vs. higher cost/latency
+
+**Files Created:**
+- `hyde_rag.py` - HyDE vs Standard retrieval comparison
+
+---
+
+## Day 10: Self-RAG (Retrieval Grading)
+
+**Date:** 2026-01-20
+
+**What we built:**
+- Self-RAG system with retrieval grading
+- Gemini acts as a JUDGE to score chunk relevance (1-5 scale)
+- System only answers if average relevance >= threshold
+- Can decline to answer: "I don't have enough information"
+
+**Key Features:**
+- **Retrieval Grading**: Gemini judges relevance of each chunk (1-5 scale)
+- **Threshold-Based Decision**: Only answers if average score meets threshold
+- **Graceful Decline**: Says "I don't know" when retrieval quality is poor
+- **Configurable Threshold**: Experiment with 2.0, 3.0, 4.0 to find optimal balance
+
+**Test Questions:**
+- **Good match**: "What are the 3 types of RAG?" (should answer)
+- **Partial match**: "How does blockchain improve RAG?" (should decline)
+- **Bad match**: "What's the weather today?" (should decline)
+
+**Key Metrics:**
+- Relevance scores (1-5) for each retrieved chunk
+- Average relevance score
+- System decision (answer or decline)
+- Threshold tuning results
+
+**Threshold Tuning Findings:**
+- **Threshold = 2.0**: Answers everything (too loose, may hallucinate)
+- **Threshold = 3.0**: Balanced (recommended default)
+- **Threshold = 4.0**: Only answers perfect matches (too strict, may miss valid answers)
+
+**The Goal:**
+Prove the system can say "I don't know" when it doesn't have enough information, preventing hallucinations.
+
+**Files Created:**
+- `self_rag.py` - Self-RAG with retrieval grading
+
+---
+
 ## Research Methodology
 
 ### Evaluation Framework

@@ -136,7 +136,33 @@ python3 rag_system.py benchmark
 - `all-mpnet-base-v2` - Higher quality
 - `BAAI/bge-small-en-v1.5` - State-of-the-art
 
-### Step 4: Multi-Query RAG (Query Expansion)
+### Step 4: HyDE RAG (Hypothetical Document Embeddings)
+
+Test HyDE - generate hypothetical answers before retrieval:
+
+```bash
+# Run A/B test (3 questions)
+python3 hyde_rag.py
+
+# Single custom question
+python3 hyde_rag.py --single "Explain the benefits of query rewriting in Advanced RAG"
+
+# Choose collection
+python3 hyde_rag.py --collection chunk_experiment_medium
+```
+
+**What it does:**
+- Takes your question
+- Uses Gemini to generate a hypothetical answer (~200 words)
+- Embeds the hypothetical answer (not the question) for retrieval
+- Compares HyDE retrieval vs standard query embedding
+
+**Key Metrics:**
+- Chunks retrieved by HyDE vs Standard
+- Which approach found the "golden chunk" (most relevant)
+- Cost analysis: 1 LLM call + 1 embedding vs 1 embedding
+
+### Step 5: Multi-Query RAG (Query Expansion)
 
 Test query expansion using Gemini to generate multiple query variations:
 
@@ -209,7 +235,9 @@ Day3/
 ├── rag_system.py            # Core RAG system implementation
 ├── chunk_experiment.py      # Chunking strategy comparison
 ├── rag_evaluator.py         # RAGAS evaluation framework
+├── hyde_rag.py             # HyDE (Hypothetical Document Embeddings)
 ├── multi_query_rag.py       # Multi-query RAG with query expansion
+├── self_rag.py             # Self-RAG with retrieval grading
 ├── hyde_rag.py              # HyDE vs Standard retrieval experiment
 │
 ├── sample_document.txt      # Test corpus (RAG documentation)
@@ -270,7 +298,22 @@ Production-grade evaluation using RAGAS framework:
 - Context Precision (retrieval quality)
 - Context Recall (information completeness)
 
-### 4. Multi-Query RAG (`multi_query_rag.py`)
+### 4. HyDE RAG (`hyde_rag.py`)
+
+Hypothetical Document Embeddings for improved retrieval:
+
+**Features:**
+- **Hypothetical Answer Generation**: Gemini creates plausible answer first
+- **Answer-Based Retrieval**: Embeds hypothetical answer instead of question
+- **A/B Comparison**: Side-by-side with standard retrieval
+- **Golden Chunk Detection**: Identifies most relevant chunk
+
+**Use Cases:**
+- Testing if hypothetical answers improve retrieval
+- Understanding HyDE vs standard retrieval trade-offs
+- Evaluating cost/benefit (1 LLM call + 1 embedding vs 1 embedding)
+
+### 5. Multi-Query RAG (`multi_query_rag.py`)
 
 Query expansion system for improved retrieval coverage:
 
@@ -284,6 +327,21 @@ Query expansion system for improved retrieval coverage:
 - Testing query expansion effectiveness
 - Understanding retrieval coverage improvements
 - Evaluating cost/benefit of multi-query approaches
+
+### 6. Self-RAG (`self_rag.py`)
+
+Retrieval grading system that can say "I don't know":
+
+**Features:**
+- **Retrieval Grading**: Gemini judges chunk relevance (1-5 scale)
+- **Threshold-Based Decision**: Only answers if average score >= threshold
+- **Graceful Decline**: Says "I don't have enough information" when retrieval is poor
+- **Prevents Hallucinations**: Won't answer without relevant context
+
+**Use Cases:**
+- Testing system's ability to decline poor queries
+- Preventing hallucinations in production
+- Threshold tuning for optimal answer quality
 
 ---
 

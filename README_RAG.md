@@ -167,7 +167,9 @@ python3 hyde_rag.py --collection chunk_experiment_small --topk 3
 - `rag_system.py` - Complete RAG system implementation
 - `chunk_experiment.py` - Chunking strategy comparison tool
 - `rag_evaluator.py` - RAGAS-based evaluation system for production scoring
+- `hyde_rag.py` - HyDE (Hypothetical Document Embeddings) experiment
 - `multi_query_rag.py` - Multi-query RAG with query expansion comparison
+- `self_rag.py` - Self-RAG with retrieval grading
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
