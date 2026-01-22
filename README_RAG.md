@@ -158,7 +158,53 @@ python3 hyde_rag.py --collection chunk_experiment_small --topk 3
 **What it shows:**
 - The generated hypothetical answer (HyDE)
 - Top-k chunks retrieved by HyDE vs standard
-- Which method found the “golden chunk” (highest relevance vs the original question)
+- Which method found the "golden chunk" (highest relevance vs the original question)
+
+### Self-RAG (Retrieval Grading)
+To test Self-RAG - system can say "I don't know":
+
+```bash
+# Run test suite (3 questions: good match, partial match, bad match)
+python3 self_rag.py
+
+# Single question
+python3 self_rag.py --single "What are the 3 types of RAG?"
+
+# Custom threshold (2.0 = loose, 3.0 = balanced, 4.0 = strict)
+python3 self_rag.py --threshold 4.0
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. Set `GEMINI_API_KEY` environment variable (required for relevance judging)
+
+**What it does:**
+1. Retrieves top-k chunks from ChromaDB
+2. Uses Gemini as JUDGE to score relevance (1-5 scale) for each chunk
+3. Calculates average relevance score
+4. Only answers if average >= threshold, otherwise declines
+
+**Output:**
+- Retrieved chunks with relevance scores (1-5)
+- Average relevance score
+- System decision (answer or decline)
+- Answer (if threshold met) or "I don't have enough information"
+
+**Important Discovery - Multi-Layer Protection:**
+During testing, we discovered the system has **two layers of protection**:
+1. **Retrieval Grading Layer**: Gemini judges chunk relevance (1-5 scale) before answering
+2. **Answer Generation Layer**: Even if threshold is met, the answer generator can still decline
+
+**Test Results Example:**
+- Question: "What are the 3 types of RAG?" (expected to answer)
+- With threshold 3.0: Declined (avg score 2.0) ✓ Correctly conservative
+- With threshold 2.0: Attempted to answer, but answer generator said "I don't have enough information" ✓
+- **Finding**: The chunks retrieved didn't actually contain the answer, proving both layers work correctly
+
+**Threshold Recommendations:**
+- **Threshold = 2.0**: Too loose (may hallucinate)
+- **Threshold = 3.0**: Balanced (recommended default)
+- **Threshold = 4.0**: Too strict (may miss valid answers)
 
 ## Files Created
 
