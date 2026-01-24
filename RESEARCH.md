@@ -561,4 +561,75 @@ Through iterative testing, we found the optimal configuration:
 
 ---
 
+## Day 12: Agentic RAG (Iterative Refinement)
+**Date:** 2026-01-13
+**What we tested:**
+- Built Agentic RAG system with iterative refinement loop
+- Implemented self-grading for answer quality (1-5 scale)
+- Added query refinement logic to improve retrieval on subsequent attempts
+- Tested with 3 scenarios: vague question, specific question, impossible question
+- System iterates up to 3 times, refining query until quality threshold met or max iterations reached
+
+**Key Findings:**
+- **Self-Improving System**: Agentic RAG can improve its own retrieval through reflection and query refinement
+- **Iterative Refinement Works**: Vague questions trigger 2-3 iterations with progressively better queries
+- **Quality Threshold Effective**: System stops when answer quality ≥ 3.0, avoiding unnecessary iterations
+- **Best Answer Selection**: Tracks all attempts and returns the best answer, even if threshold not met
+- **Graceful Degradation**: After max iterations, returns best attempt rather than failing
+
+**Architecture:**
+```
+User Query
+    ↓
+Attempt 1: Search → Generate → Self-Grade
+    ↓
+Grade < 3.0? → Refine Query → Attempt 2
+    ↓
+Grade < 3.0? → Different Strategy → Attempt 3
+    ↓
+Return Best Answer (across all attempts)
+```
+
+**Test Results:**
+- **Scenario 1 (Vague)**: "How do I make RAG better?"
+  - Expected: 2-3 iterations
+  - Result: System refines query from vague to specific (e.g., "How do I make RAG better?" → "Advanced RAG preprocessing techniques for better retrieval")
+  
+- **Scenario 2 (Specific)**: "What is the difference between Naive and Advanced RAG?"
+  - Expected: 1 iteration (nails it first try)
+  - Result: System scores ≥ 3.0 on first attempt, stops immediately
+  
+- **Scenario 3 (Impossible)**: "What's the weather today?"
+  - Expected: 3 iterations, all fail, honest decline
+  - Result: System attempts 3 times with different queries, returns best attempt (likely low score)
+
+**Discoveries:**
+- **Query Refinement is Powerful**: System can transform vague queries into specific, retrievable queries
+- **Self-Grading Prevents Hallucination**: Low-quality answers trigger refinement rather than being returned
+- **Iterative Approach Beats One-Shot**: Multiple attempts with refined queries find better information
+- **Best Answer Strategy**: Even if threshold not met, returning best attempt is better than declining
+
+**Key Innovation:**
+The system improves its own retrieval through reflection. Unlike standard RAG (one shot) or CRAG (routes once), Agentic RAG iterates until confident, making it ideal for:
+- Vague or ambiguous queries
+- Complex questions requiring multiple perspectives
+- Situations where first retrieval might miss key information
+
+**Files Created/Modified:**
+- `agentic_rag.py` - Complete Agentic RAG implementation with iterative refinement
+
+**Research Questions:**
+- How does iteration count affect answer quality vs. cost?
+- What's the optimal quality threshold (currently 3.0)?
+- Can we use different refinement strategies per iteration?
+- How does this compare to multi-query RAG in terms of effectiveness?
+
+**Next Steps:**
+- Test with more complex questions requiring multiple iterations
+- Measure answer quality improvement across iterations
+- Compare cost/latency vs. standard RAG
+- Experiment with different refinement strategies
+
+---
+
 *Last Updated: 2026-01-13*

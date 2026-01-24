@@ -258,6 +258,60 @@ python3 crag_system.py --collection chunk_experiment_medium
 - Hybrid mode provides best of both worlds: authoritative local knowledge + current web information
 - Web search is valuable for time-sensitive queries and questions outside local knowledge base
 
+### Agentic RAG (Iterative Refinement)
+To test Agentic RAG - the self-improving system that refines queries until confident:
+
+```bash
+# Run test suite (3 questions: vague, specific, impossible)
+python3 agentic_rag.py
+
+# Single question
+python3 agentic_rag.py --single "How can I improve RAG retrieval accuracy?"
+
+# Custom threshold
+python3 agentic_rag.py --threshold 4.0
+
+# More iterations
+python3 agentic_rag.py --iterations 5
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. Set `GEMINI_API_KEY` environment variable (required for answer generation, self-grading, and query refinement)
+
+**What it does:**
+1. Takes user question
+2. Attempt loop (max 3 iterations by default):
+   - Retrieve chunks from ChromaDB
+   - Generate answer
+   - Self-grade answer quality (1-5 scale)
+   - If score < threshold (default 3.0):
+     * Refine query using Gemini
+     * Try again with refined query
+   - If score >= threshold:
+     * Stop, return answer
+3. Tracks all attempts (query, docs, answer, score)
+4. Returns best answer from all attempts
+
+**Output:**
+- Iteration history table showing each attempt's query, score, and status
+- Best attempt details (which iteration won, why it stopped)
+- Final answer
+- Retrieved chunks from best attempt
+
+**Key Innovation:**
+Unlike standard RAG (one shot) or CRAG (routes once), Agentic RAG iterates until confident. The system improves its own retrieval through reflection and query refinement.
+
+**Use Cases:**
+- **Vague questions**: "How do I make RAG better?" → System refines to specific query
+- **Complex questions**: Multiple iterations find different perspectives
+- **Ambiguous queries**: Query refinement clarifies intent
+
+**Configuration:**
+- `--threshold`: Quality threshold to accept answer (default: 3.0)
+- `--iterations`: Maximum refinement attempts (default: 3)
+- `--topk`: Number of chunks to retrieve per attempt (default: 3)
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
@@ -269,6 +323,7 @@ python3 crag_system.py --collection chunk_experiment_medium
 - `multi_query_rag.py` - Multi-query RAG with query expansion comparison
 - `self_rag.py` - Self-RAG with retrieval grading
 - `crag_system.py` - CRAG (Corrective RAG) with web search fallback
+- `agentic_rag.py` - Agentic RAG with iterative refinement
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
@@ -283,7 +338,8 @@ python3 crag_system.py --collection chunk_experiment_medium
 2. **Evaluate**: Run `rag_evaluator.py` to score each strategy with RAGAS metrics
 3. **Query Expansion**: Run `multi_query_rag.py` to test multi-query retrieval
 4. **Web Search Fallback**: Run `crag_system.py` to test intelligent routing to web search
-5. **Decide**: Use the data-driven recommendations to choose production settings
+5. **Iterative Refinement**: Run `agentic_rag.py` to test self-improving RAG
+6. **Decide**: Use the data-driven recommendations to choose production settings
 
 ## Security
 
