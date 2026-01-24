@@ -232,8 +232,8 @@ python3 crag_system.py --collection chunk_experiment_medium
 3. Routes based on average relevance score:
    - **4.0-5.0**: Use local docs only (high confidence)
    - **3.0-3.9**: Hybrid mode (combine local + web)
-   - **2.0-2.9**: Use web search only (low confidence)
-   - **0.0-1.9**: Decline to answer ("I don't know")
+   - **< 3.0**: Try web search first (low confidence)
+   - **Only decline** if web search fails or unavailable
 4. Generates answer from selected source(s)
 
 **Output:**
@@ -248,8 +248,8 @@ python3 crag_system.py --collection chunk_experiment_medium
 |----------------|--------|------|
 | 4.0-5.0 | Local only | 1 embedding + 1 LLM call |
 | 3.0-3.9 | Hybrid (Local + Web) | 1 embedding + 1 web search + 1 LLM call |
-| 2.0-2.9 | Web only | 1 embedding + 1 web search + 1 LLM call |
-| 0.0-1.9 | Decline | 1 embedding call only |
+| < 3.0 | Try web search first | 1 embedding + 1 web search + 1 LLM call |
+| Web fails | Decline | 1 embedding call only |
 
 **Key Discovery:**
 - CRAG extends Self-RAG's "I don't know" with "I'll search the web"

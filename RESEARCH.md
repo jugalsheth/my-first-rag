@@ -401,11 +401,11 @@ When adding new findings:
 **Date:** 2026-01-13
 **What we tested:**
 - Built CRAG system extending Self-RAG with intelligent web search routing
-- Implemented 4-tier routing logic based on relevance scores:
+- Implemented 3-tier routing logic with web-first fallback:
   - 4.0-5.0: Local only (high confidence)
   - 3.0-3.9: Hybrid (combine local + web)
-  - 2.0-2.9: Web only (low confidence, need external)
-  - 0.0-1.9: Decline ("I don't know")
+  - < 3.0: Try web search first (low confidence)
+  - Only decline if web search fails or unavailable
 - Integrated Tavily API for web search (free tier: 1000 requests/month)
 - Tested with 3 scenarios: good local match, bad local match, hybrid
 
@@ -424,8 +424,8 @@ When adding new findings:
 |----------------|--------|-----------|
 | 4.0-5.0 | Local only | High confidence in local knowledge |
 | 3.0-3.9 | Hybrid (Local + Web) | Medium confidence, verify with web |
-| 2.0-2.9 | Web only | Low confidence, need external sources |
-| 0.0-1.9 | Decline | Nothing relevant, avoid hallucination |
+| < 3.0 | Try web search first | Low confidence, attempt web search |
+| Web fails | Decline | Web unavailable, avoid hallucination |
 
 **Test Results:**
 - **Scenario 1 (Good Local)**: "What are the 3 types of RAG?"
@@ -434,7 +434,7 @@ When adding new findings:
   
 - **Scenario 2 (Bad Local)**: "What RAG research happened in January 2026?"
   - Expected: Web search
-  - Result: System routes to web when score < 3.0
+  - Result: System tries web search when score < 3.0 (fixed bug: previously declined for scores < 2.0)
   
 - **Scenario 3 (Hybrid)**: "Compare RAG to traditional search"
   - Expected: Hybrid (local + web)
@@ -447,6 +447,13 @@ When adding new findings:
   - Time-sensitive queries (recent research, current events)
   - Questions outside local knowledge base
   - Verification of local answers
+
+**Bug Fix - Routing Hierarchy:**
+- **Initial Bug**: Scores < 2.0 were declining instead of trying web search
+- **Root Cause**: Routing logic had hard threshold at 2.0, causing premature declines
+- **Fix**: Changed to "web-first" approach: all scores < 3.0 try web search, only decline if web fails
+- **Insight**: Discovered proper routing hierarchy: Local high confidence (≥3.0) → Local only; Local low confidence (<3.0) → Try web; Web fails → Only then decline
+- **Production Pattern**: This is production-grade logic - always attempt external sources before declining
 
 **Files Created/Modified:**
 - `crag_system.py` - Complete CRAG implementation with web search fallback

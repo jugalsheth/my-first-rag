@@ -9,8 +9,8 @@ Flow:
 4. Route based on score:
    - 4.0-5.0: Use local docs only (high confidence)
    - 3.0-3.9: Hybrid mode (combine local + web)
-   - 2.0-2.9: Use web search only (low confidence)
-   - 0.0-1.9: Decline to answer ("I don't know")
+   - < 3.0: Try web search first (low confidence)
+   - Only decline if web search fails or unavailable
 5. Generate answer from selected source(s)
 
 This proves the system can intelligently fallback to web search when local knowledge is insufficient.
@@ -308,10 +308,9 @@ Respond with ONLY a single number (1, 2, 3, 4, or 5). No explanation."""
             return ("local", f"High confidence (score {average_score:.2f}) - using local docs only")
         elif average_score >= 3.0:
             return ("hybrid", f"Medium confidence (score {average_score:.2f}) - combining local + web")
-        elif average_score >= 2.0:
-            return ("web", f"Low confidence (score {average_score:.2f}) - using web search only")
         else:
-            return ("decline", f"Very low confidence (score {average_score:.2f}) - declining to answer")
+            # All scores < 3.0 should try web search first
+            return ("web", f"Low confidence (score {average_score:.2f}) - trying web search first")
     
     def generate_answer(self, question: str, local_chunks: List[str] = None, web_results: List[Dict] = None) -> str:
         """Generate answer from local chunks and/or web results"""
@@ -442,14 +441,14 @@ Answer:"""
                 self.console.print("[dim]Using local knowledge base only...[/dim]")
         
         elif source_type == "web":
-            # Use web only
+            # Use web only - try web search first, only decline if it fails
             if show_details:
                 self.console.print("[dim]Local relevance too low. Searching web...[/dim]")
             web_results = self.search_web(question)
             if not web_results:
-                # Web search failed, fallback to decline
+                # Web search failed or unavailable, fallback to decline
                 source_type = "decline"
-                reasoning = "Web search unavailable, declining to answer"
+                reasoning = f"Local score too low ({average_score:.2f}) and web search unavailable - declining to answer"
         
         elif source_type == "hybrid":
             # Combine local + web
@@ -457,9 +456,10 @@ Answer:"""
             if show_details:
                 self.console.print("[dim]Combining local knowledge with web search...[/dim]")
             web_results = self.search_web(question)
+            # Hybrid still works even if web search fails (we have local chunks)
         
         elif source_type == "decline":
-            # Decline to answer
+            # This should not happen with new logic, but keep for safety
             pass
         
         # Step 5: Generate answer
