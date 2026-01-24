@@ -529,8 +529,11 @@ Respond with ONLY the refined query. No explanation, just the new query."""
                 attempt["stopped"] = True
                 attempt["reason_stopped"] = f"Quality threshold met ({score:.2f} >= {self.quality_threshold})"
                 if show_details:
-                    self.console.print(f"[green]✓ Quality threshold met! Score: {score:.2f}/5.0[/green]")
+                    self.console.print(f"[green]✓ Quality threshold met! Score: {score:.2f}/5.0 (threshold: {self.quality_threshold})[/green]")
                 break
+            else:
+                if show_details:
+                    self.console.print(f"[yellow]Quality below threshold: {score:.2f} < {self.quality_threshold}. Will refine...[/yellow]")
             
             # Step 5: Refine query for next iteration
             if iteration < self.max_iterations:
@@ -662,6 +665,7 @@ def parse_args(argv: List[str]) -> Dict:
         "max_iterations": 3,
         "mode": "test",
         "question": None,
+        "demo": False,
     }
     
     i = 0
@@ -700,6 +704,10 @@ def parse_args(argv: List[str]) -> Dict:
             args["mode"] = "single"
             i += 1
             continue
+        if tok in ("--demo", "-d"):
+            args["demo"] = True
+            i += 1
+            continue
         if tok in ("--help", "-h"):
             args["mode"] = "help"
             i += 1
@@ -731,6 +739,9 @@ def main():
                 "  `python3 agentic_rag.py --threshold 4.0`\n\n"
                 "- More iterations:\n"
                 "  `python3 agentic_rag.py --iterations 5`\n\n"
+                "- Demo mode (force iteration with hard questions):\n"
+                "  `python3 agentic_rag.py --demo`\n"
+                "  or: `AGENTIC_DEMO_MODE=true python3 agentic_rag.py`\n\n"
                 "[dim]Requires GEMINI_API_KEY for best results. Uses template-based fallback if unavailable.[/dim]",
                 box=box.ROUNDED,
                 border_style="cyan",
@@ -763,23 +774,54 @@ def main():
         return
     
     # Test suite mode
-    test_questions = [
-        {
-            "question": "How do I make RAG better?",
-            "expected_iterations": "2-3",
-            "category": "Vague question (forces refinement)"
-        },
-        {
-            "question": "What is the difference between Naive and Advanced RAG?",
-            "expected_iterations": "1",
-            "category": "Specific question (one shot)"
-        },
-        {
-            "question": "What's the weather today?",
-            "expected_iterations": "3",
-            "category": "Impossible question (max iterations, all fail)"
-        }
-    ]
+    # Use harder questions and higher threshold to force iteration
+    demo_mode = args.get("demo", False) or os.getenv("AGENTIC_DEMO_MODE", "false").lower() == "true"
+    
+    if demo_mode:
+        # Demo mode: Intentionally hard questions + higher threshold to show iteration
+        console.print("[yellow]DEMO MODE: Using harder questions and higher threshold to demonstrate iteration[/yellow]")
+        test_questions = [
+            {
+                "question": "fix my broken system",
+                "expected_iterations": "2-3",
+                "category": "Extremely vague (needs refinement)",
+                "threshold_override": 4.5  # Very high threshold
+            },
+            {
+                "question": "how to do stuff better",
+                "expected_iterations": "2-3",
+                "category": "Vague question (forces refinement)",
+                "threshold_override": 4.0
+            },
+            {
+                "question": "what should i know about things",
+                "expected_iterations": "2-3",
+                "category": "Very vague (needs multiple attempts)",
+                "threshold_override": 4.0
+            }
+        ]
+        # Override threshold for demo
+        if test_questions:
+            agentic_rag.quality_threshold = test_questions[0].get("threshold_override", 4.0)
+    else:
+        # Normal mode: Mix of question types
+        test_questions = [
+            {
+                "question": "How do I make RAG better?",
+                "expected_iterations": "2-3",
+                "category": "Vague question (forces refinement)"
+            },
+            {
+                "question": "What is the difference between Naive and Advanced RAG?",
+                "expected_iterations": "1",
+                "category": "Specific question (one shot)"
+            },
+            {
+                "question": "What's the weather today?",
+                "expected_iterations": "3",
+                "category": "Impossible question (max iterations, all fail)"
+            }
+        ]
     
     console.print()
     console.print(Panel(
@@ -795,12 +837,22 @@ def main():
     results = []
     for i, test in enumerate(test_questions, 1):
         console.print(f"\n[bold yellow]Running test {i}/{len(test_questions)}...[/bold yellow]")
+        
+        # Override threshold if specified for this test
+        original_threshold = agentic_rag.quality_threshold
+        if "threshold_override" in test:
+            agentic_rag.quality_threshold = test["threshold_override"]
+            console.print(f"[dim]Using threshold: {agentic_rag.quality_threshold} (for demo)[/dim]")
+        
         result = agentic_rag.process_question(test["question"], top_k=args["top_k"])
         result["expected_iterations"] = test["expected_iterations"]
         result["category"] = test["category"]
         results.append(result)
         agentic_rag.display_results(result)
         console.print("=" * 80)
+        
+        # Restore original threshold
+        agentic_rag.quality_threshold = original_threshold
         
         # Add delay between questions to avoid rate limits
         if i < len(test_questions):
