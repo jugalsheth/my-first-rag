@@ -122,12 +122,12 @@ class AgenticRAG:
         
         genai.configure(api_key=api_key)
         
-        # Try models with higher quotas first
+        # Try models with higher quotas first (Gemma has 30 RPM vs 10 RPM for Flash Lite)
         models_to_try = [
-            ('models/gemini-2.5-flash-lite', 10, "Gemini 2.5 Flash Lite"),
-            ('models/gemma-3-12b-it', 30, "Gemma 3 12B"),
-            ('models/gemma-3-4b-it', 30, "Gemma 3 4B"),
-            ('models/gemini-2.5-flash', 5, "Gemini 2.5 Flash")
+            ('models/gemma-3-12b-it', 30, "Gemma 3 12B"),  # Highest limit first
+            ('models/gemma-3-4b-it', 30, "Gemma 3 4B"),     # Second highest
+            ('models/gemini-2.5-flash-lite', 10, "Gemini 2.5 Flash Lite"),  # Lower limit
+            ('models/gemini-2.5-flash', 5, "Gemini 2.5 Flash")  # Lowest limit last
         ]
         
         for model_name, rpm, display_name in models_to_try:
