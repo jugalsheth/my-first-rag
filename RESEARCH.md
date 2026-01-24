@@ -469,6 +469,80 @@ When adding new findings:
    - **Calibration**: Better mapping to 1-5 scale based on combined score ranges
    - **Result**: More consistent scores even when Gemini rate limited
 
+**Iterative Learning Process - Finding the Sweet Spot:**
+
+This experiment followed a carefully structured, phased approach that mirrors real-world production development:
+
+**Phase 1: Initial Implementation (Baseline)**
+- Built CRAG system with initial thresholds: 4.0+ for LOCAL, 3.0+ for HYBRID
+- Assumption: High thresholds would ensure quality
+- Result: System worked, but routing decisions seemed off
+
+**Phase 2: Discovery - Routing Bug**
+- **Observation**: Test 2 & 3 declined when they should have searched web
+- **Root Cause Analysis**: Found hard threshold at 2.0 causing premature declines
+- **Learning**: "I don't know" should be last resort, not first response
+- **Fix**: Changed to web-first approach - always try external sources before declining
+- **Insight**: Production systems need graceful degradation chains
+
+**Phase 3: Threshold Calibration**
+- **Observation**: Even after routing fix, scores 1.90-2.60 all routed to WEB
+- **Root Cause**: Original thresholds (4.0+, 3.0+) too high for actual score distribution
+- **Hypothesis**: Thresholds need to match real-world score ranges, not theoretical ideals
+- **Experiment**: Lowered to 3.0+ for LOCAL, 2.0+ for HYBRID
+- **Result**: More accurate routing - relevant chunks now correctly identified as LOCAL or HYBRID
+- **Learning**: Thresholds must be calibrated to your specific scoring system, not copied from papers
+
+**Phase 4: Fallback Scoring Refinement**
+- **Observation**: Scores inconsistent between runs (2.0 vs 1.90 for same question)
+- **Root Cause**: Rate limits triggered simple keyword fallback, losing semantic understanding
+- **Hypothesis**: Fallback scoring must maintain semantic accuracy even without LLM
+- **Solution**: Hybrid approach - 70% embedding similarity + 30% keyword matching
+- **Calibration**: Mapped combined scores to 1-5 scale with realistic ranges
+- **Result**: Consistent scoring even when API unavailable
+- **Learning**: Production systems need robust fallbacks that maintain quality
+
+**The Sweet Spot Discovery:**
+Through iterative testing, we found the optimal configuration:
+- **Thresholds**: 3.0+ (LOCAL), 2.0+ (HYBRID) - balanced between quality and coverage
+- **Fallback**: Embedding + keyword hybrid - maintains accuracy when rate-limited
+- **Routing**: Web-first with graceful degradation - maximizes answer attempts
+
+**Why This Matters in Production:**
+
+1. **Thresholds Are Not Universal**: What works in research papers (4.0+) may not work with your scoring system. Real-world systems have different score distributions based on:
+   - Embedding model quality
+   - Chunking strategy
+   - Domain specificity
+   - Fallback scoring accuracy
+
+2. **Iterative Calibration is Essential**: You can't set thresholds once and forget them. They need:
+   - Initial testing with real queries
+   - Monitoring of routing decisions
+   - Adjustment based on actual score distributions
+   - Continuous refinement as system evolves
+
+3. **Fallback Quality Matters**: When primary systems fail (rate limits, API outages), fallback must maintain quality. Poor fallback scoring leads to:
+   - Wrong routing decisions
+   - Inconsistent user experience
+   - Wasted API calls (routing to wrong source)
+
+4. **Production Pattern**: The phased approach we used (Build → Test → Analyze → Refine) is exactly how production systems should be developed:
+   - Start with reasonable defaults
+   - Test with real scenarios
+   - Measure actual behavior
+   - Adjust based on data
+   - Document learnings for future iterations
+
+5. **Real-World Application**: This process teaches that:
+   - **No system is perfect on first try** - expect to iterate
+   - **Data beats assumptions** - test with real queries, not theoretical ones
+   - **Fallbacks are critical** - systems fail, fallbacks must work
+   - **Thresholds are domain-specific** - calibrate to your use case
+   - **Documentation is learning** - each phase teaches something new
+
+**Key Takeaway**: The "sweet spot" isn't a magic number - it's a process of continuous learning, testing, and refinement. Production RAG systems require this iterative approach to find thresholds that balance quality, coverage, and cost for your specific use case.
+
 **Files Created/Modified:**
 - `crag_system.py` - Complete CRAG implementation with web search fallback
 - `requirements.txt` - Added `tavily-python>=0.3.0`
