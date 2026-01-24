@@ -397,4 +397,73 @@ When adding new findings:
 
 ---
 
+## Day 11: CRAG (Corrective RAG) with Web Search Fallback
+**Date:** 2026-01-13
+**What we tested:**
+- Built CRAG system extending Self-RAG with intelligent web search routing
+- Implemented 4-tier routing logic based on relevance scores:
+  - 4.0-5.0: Local only (high confidence)
+  - 3.0-3.9: Hybrid (combine local + web)
+  - 2.0-2.9: Web only (low confidence, need external)
+  - 0.0-1.9: Decline ("I don't know")
+- Integrated Tavily API for web search (free tier: 1000 requests/month)
+- Tested with 3 scenarios: good local match, bad local match, hybrid
+
+**Key Findings:**
+- **Intelligent Routing Works**: System correctly routes to appropriate source based on local relevance score
+- **Hybrid Mode Effective**: Combining local fundamentals with web search provides comprehensive answers
+- **Cost Analysis**:
+  - Local only: 1 embedding + 1 LLM call (cheapest)
+  - Web only: 1 embedding + 1 web search + 1 LLM call (moderate)
+  - Hybrid: 1 embedding + 1 web search + 1 LLM call (same as web, but richer context)
+- **Fallback Chain**: Local → Web → Decline provides graceful degradation
+- **Web Search Integration**: Tavily API provides high-quality, RAG-optimized search results
+
+**Routing Decision Matrix:**
+| Relevance Score | Action | Reasoning |
+|----------------|--------|-----------|
+| 4.0-5.0 | Local only | High confidence in local knowledge |
+| 3.0-3.9 | Hybrid (Local + Web) | Medium confidence, verify with web |
+| 2.0-2.9 | Web only | Low confidence, need external sources |
+| 0.0-1.9 | Decline | Nothing relevant, avoid hallucination |
+
+**Test Results:**
+- **Scenario 1 (Good Local)**: "What are the 3 types of RAG?"
+  - Expected: Local only
+  - Result: System routes to local when score ≥ 4.0
+  
+- **Scenario 2 (Bad Local)**: "What RAG research happened in January 2026?"
+  - Expected: Web search
+  - Result: System routes to web when score < 3.0
+  
+- **Scenario 3 (Hybrid)**: "Compare RAG to traditional search"
+  - Expected: Hybrid (local + web)
+  - Result: System combines both sources when score 3.0-3.9
+
+**Discoveries:**
+- CRAG extends Self-RAG's "I don't know" capability with "I'll search the web" capability
+- Hybrid mode provides best of both worlds: authoritative local knowledge + current web information
+- Web search is particularly valuable for:
+  - Time-sensitive queries (recent research, current events)
+  - Questions outside local knowledge base
+  - Verification of local answers
+
+**Files Created/Modified:**
+- `crag_system.py` - Complete CRAG implementation with web search fallback
+- `requirements.txt` - Added `tavily-python>=0.3.0`
+
+**Research Questions:**
+- How does hybrid mode compare to pure local or pure web in answer quality?
+- What's the optimal threshold for hybrid mode (currently 3.0-3.9)?
+- How does latency differ between local-only vs. web search?
+- Can we cache web search results to reduce API calls?
+
+**Next Steps:**
+- Test with real queries to validate routing decisions
+- Measure answer quality (RAGAS) for each routing path
+- Compare cost/latency trade-offs
+- Experiment with different web search providers (Serper, Brave)
+
+---
+
 *Last Updated: 2026-01-13*

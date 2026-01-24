@@ -206,6 +206,56 @@ During testing, we discovered the system has **two layers of protection**:
 - **Threshold = 3.0**: Balanced (recommended default)
 - **Threshold = 4.0**: Too strict (may miss valid answers)
 
+### CRAG (Corrective RAG with Web Search)
+To test CRAG - intelligent routing to web search when local knowledge is insufficient:
+
+```bash
+# Run test suite (3 questions: good local, bad local, hybrid)
+python3 crag_system.py
+
+# Single question
+python3 crag_system.py --single "What are the 3 types of RAG?"
+
+# Choose collection
+python3 crag_system.py --collection chunk_experiment_medium
+```
+
+**Prerequisites:**
+1. Run `chunk_experiment.py` first to create the collections
+2. Set `GEMINI_API_KEY` environment variable (required for relevance judging)
+3. Set `TAVILY_API_KEY` environment variable (required for web search)
+   - Get free API key at: https://tavily.com (1000 requests/month free)
+
+**What it does:**
+1. Retrieves top-k chunks from local ChromaDB
+2. Uses Gemini to score relevance (1-5 scale) for each chunk
+3. Routes based on average relevance score:
+   - **4.0-5.0**: Use local docs only (high confidence)
+   - **3.0-3.9**: Hybrid mode (combine local + web)
+   - **2.0-2.9**: Use web search only (low confidence)
+   - **0.0-1.9**: Decline to answer ("I don't know")
+4. Generates answer from selected source(s)
+
+**Output:**
+- Retrieved chunks with relevance scores (1-5)
+- Average relevance score
+- Source decision (local/web/hybrid/decline)
+- Web search results (if applicable)
+- Final answer
+
+**Routing Decision Matrix:**
+| Relevance Score | Action | Cost |
+|----------------|--------|------|
+| 4.0-5.0 | Local only | 1 embedding + 1 LLM call |
+| 3.0-3.9 | Hybrid (Local + Web) | 1 embedding + 1 web search + 1 LLM call |
+| 2.0-2.9 | Web only | 1 embedding + 1 web search + 1 LLM call |
+| 0.0-1.9 | Decline | 1 embedding call only |
+
+**Key Discovery:**
+- CRAG extends Self-RAG's "I don't know" with "I'll search the web"
+- Hybrid mode provides best of both worlds: authoritative local knowledge + current web information
+- Web search is valuable for time-sensitive queries and questions outside local knowledge base
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
@@ -216,6 +266,7 @@ During testing, we discovered the system has **two layers of protection**:
 - `hyde_rag.py` - HyDE (Hypothetical Document Embeddings) experiment
 - `multi_query_rag.py` - Multi-query RAG with query expansion comparison
 - `self_rag.py` - Self-RAG with retrieval grading
+- `crag_system.py` - CRAG (Corrective RAG) with web search fallback
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
@@ -229,7 +280,8 @@ During testing, we discovered the system has **two layers of protection**:
 1. **Setup**: Run `chunk_experiment.py` to create chunking strategy collections
 2. **Evaluate**: Run `rag_evaluator.py` to score each strategy with RAGAS metrics
 3. **Query Expansion**: Run `multi_query_rag.py` to test multi-query retrieval
-4. **Decide**: Use the data-driven recommendations to choose production settings
+4. **Web Search Fallback**: Run `crag_system.py` to test intelligent routing to web search
+5. **Decide**: Use the data-driven recommendations to choose production settings
 
 ## Security
 
