@@ -157,9 +157,10 @@ class AgenticRAG:
     def generate_answer(self, question: str, chunks: List[str]) -> str:
         """Generate answer from retrieved chunks"""
         if not self.gemini_client:
-            # Template fallback
+            # Template fallback - mark clearly as template
             if chunks:
                 context = "\n\n".join(chunks[:2])
+                # Make it clear this is a template (will be scored conservatively)
                 return f"Based on the retrieved information: {context[:300]}..."
             return "I don't have enough information to answer this question."
         
@@ -190,8 +191,10 @@ Answer:"""
             else:
                 self.console.print(f"[yellow]Error generating answer: {e}, using template[/yellow]")
             
+            # Template fallback - mark clearly as template
             if chunks:
                 context = "\n\n".join(chunks[:2])
+                # Make it clear this is a template (will be scored conservatively)
                 return f"Based on the retrieved information: {context[:300]}..."
             return "I don't have enough information to answer this question."
     
@@ -203,20 +206,38 @@ Answer:"""
             (score, reasoning) tuple
         """
         if not self.gemini_client:
-            # Template fallback: simple heuristic
+            # Template fallback: more conservative scoring
             if "don't have enough information" in answer.lower():
                 return (1.0, "Answer indicates insufficient information")
+            
+            # Detect template answers (just concatenated chunks)
+            is_template = (
+                answer.lower().startswith("based on the retrieved information") or
+                len(answer) < 100 or  # Very short answers are likely templates
+                answer.count("...") > 0  # Truncated chunks
+            )
             
             # Check if answer relates to chunks
             answer_words = set(answer.lower().split())
             chunk_words = set(" ".join(chunks).lower().split())
             overlap = len(answer_words & chunk_words) / len(answer_words) if answer_words else 0
             
-            if overlap > 0.3:
-                score = 2.0 + (overlap * 3.0)
+            # More conservative scoring, especially for templates
+            if is_template:
+                # Template answers get capped at 2.5 max
+                # High overlap just means chunks were retrieved, not that answer is good
+                if overlap > 0.5:
+                    score = 1.5 + (overlap - 0.5) * 2.0  # 1.5 to 2.5 range
+                else:
+                    score = 1.0 + overlap * 1.0  # 1.0 to 1.5 range
+                return (min(2.5, max(1.0, score)), f"Template answer (conservative): overlap {overlap:.2f}")
             else:
-                score = 1.0 + overlap
-            return (min(5.0, max(1.0, score)), f"Keyword overlap: {overlap:.2f}")
+                # Real answers (shouldn't happen without LLM, but just in case)
+                if overlap > 0.3:
+                    score = 2.0 + (overlap - 0.3) * 2.5  # 2.0 to 3.75 range (more conservative)
+                else:
+                    score = 1.0 + overlap * 1.5  # 1.0 to 2.0 range
+                return (min(3.75, max(1.0, score)), f"Keyword overlap: {overlap:.2f}")
         
         prompt = f"""You are a quality judge for a RAG system. Evaluate how well this answer addresses the question.
 
@@ -275,24 +296,39 @@ Format: "SCORE: X. REASON: [your reason]"
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "quota" in error_msg.lower():
-                self.console.print(f"[yellow]Rate limit hit for grading, using fallback[/yellow]")
+                self.console.print(f"[yellow]Rate limit hit for grading, using conservative fallback[/yellow]")
             else:
-                self.console.print(f"[yellow]Error grading answer: {e}, using fallback[/yellow]")
+                self.console.print(f"[yellow]Error grading answer: {e}, using conservative fallback[/yellow]")
             
-            # Fallback scoring
+            # Conservative fallback scoring (same logic as when Gemini unavailable)
             if "don't have enough information" in answer.lower():
                 return (1.0, "Answer indicates insufficient information")
+            
+            # Detect template answers
+            is_template = (
+                answer.lower().startswith("based on the retrieved information") or
+                len(answer) < 100 or
+                answer.count("...") > 0
+            )
             
             answer_words = set(answer.lower().split())
             chunk_words = set(" ".join(chunks).lower().split())
             overlap = len(answer_words & chunk_words) / len(answer_words) if answer_words else 0
             
-            if overlap > 0.3:
-                score = 2.0 + (overlap * 3.0)
+            if is_template:
+                # Template answers capped at 2.5 max
+                if overlap > 0.5:
+                    score = 1.5 + (overlap - 0.5) * 2.0
+                else:
+                    score = 1.0 + overlap * 1.0
+                return (min(2.5, max(1.0, score)), f"Fallback (template, conservative): overlap {overlap:.2f}")
             else:
-                score = 1.0 + overlap
-            
-            return (min(5.0, max(1.0, score)), f"Fallback: keyword overlap {overlap:.2f}")
+                # Real answers (more conservative than before)
+                if overlap > 0.3:
+                    score = 2.0 + (overlap - 0.3) * 2.5
+                else:
+                    score = 1.0 + overlap * 1.5
+                return (min(3.75, max(1.0, score)), f"Fallback: overlap {overlap:.2f}")
     
     def refine_query(self, original_question: str, previous_query: str, answer: str, score: float, chunks: List[str]) -> str:
         """

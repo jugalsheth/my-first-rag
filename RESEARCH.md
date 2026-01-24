@@ -615,6 +615,17 @@ The system improves its own retrieval through reflection. Unlike standard RAG (o
 - Complex questions requiring multiple perspectives
 - Situations where first retrieval might miss key information
 
+**Bug Fix - Conservative Fallback Scoring:**
+- **Problem**: Fallback scoring was too optimistic (4.85/5.0 for template answers with 0.95 overlap)
+- **Root Cause**: Formula `score = 2.0 + (overlap * 3.0)` allowed template answers to score too high
+- **Impact**: System stopped after attempt 1 due to inflated score, missing refinement opportunities
+- **Fix**: 
+  - Detect template answers (start with "Based on the retrieved information", short length, truncated)
+  - Cap template answers at 2.5 max (was 4.85)
+  - More conservative scoring: `1.5 + (overlap - 0.5) * 2.0` for templates
+  - Real answers also more conservative: `2.0 + (overlap - 0.3) * 2.5` (max 3.75)
+- **Result**: System now continues refining when rate-limited, as template answers score below threshold (2.5 < 3.0)
+
 **Files Created/Modified:**
 - `agentic_rag.py` - Complete Agentic RAG implementation with iterative refinement
 
