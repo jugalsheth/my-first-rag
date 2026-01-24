@@ -6,10 +6,10 @@ Flow:
 1. Retrieve top-k chunks from local ChromaDB
 2. Use Gemini to score relevance (1-5 scale) for each chunk
 3. Calculate average relevance score
-4. Route based on score:
-   - 4.0-5.0: Use local docs only (high confidence)
-   - 3.0-3.9: Hybrid mode (combine local + web)
-   - < 3.0: Try web search first (low confidence)
+4. Route based on score (adjusted thresholds for fallback scoring):
+   - 3.0+: Use local docs only (high confidence)
+   - 2.0-2.9: Hybrid mode (combine local + web)
+   - < 2.0: Try web search first (low confidence)
    - Only decline if web search fails or unavailable
 5. Generate answer from selected source(s)
 
@@ -23,6 +23,8 @@ import sys
 import time
 import warnings
 from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL")
 
@@ -175,9 +177,14 @@ class CRAG:
         
         return chunks, similarities, ids
     
-    def judge_relevance(self, question: str, chunks: List[str]) -> List[float]:
+    def judge_relevance(self, question: str, chunks: List[str], similarities: List[float] = None) -> List[float]:
         """
         Use Gemini as JUDGE to score relevance of each chunk (1-5 scale)
+        
+        Args:
+            question: The question being asked
+            chunks: List of chunks to score
+            similarities: Optional list of embedding similarities (0-1) for fallback scoring
         
         Returns:
             List of relevance scores (1.0 to 5.0) for each chunk
@@ -185,13 +192,41 @@ class CRAG:
         scores = []
         
         if not self.gemini_client:
-            # Template-based fallback: simple keyword matching
+            # Improved fallback: combine embedding similarity + keyword matching
             question_words = set(question.lower().split())
-            for chunk in chunks:
+            question_embedding = self.embedding_model.encode([question])[0]
+            
+            for i, chunk in enumerate(chunks):
+                # Use embedding similarity if available, otherwise compute it
+                if similarities and i < len(similarities):
+                    embedding_sim = similarities[i]
+                else:
+                    chunk_embedding = self.embedding_model.encode([chunk])[0]
+                    # Cosine similarity
+                    embedding_sim = np.dot(question_embedding, chunk_embedding) / (
+                        np.linalg.norm(question_embedding) * np.linalg.norm(chunk_embedding)
+                    )
+                
+                # Keyword overlap (weighted by importance)
                 chunk_words = set(chunk.lower().split())
-                overlap = len(question_words & chunk_words) / len(question_words) if question_words else 0
-                # Map overlap to 1-5 scale
-                score = 1.0 + (overlap * 4.0)
+                keyword_overlap = len(question_words & chunk_words) / len(question_words) if question_words else 0
+                
+                # Combine: 70% embedding similarity, 30% keyword overlap
+                # Embedding similarity is more reliable for semantic matching
+                combined_score = (embedding_sim * 0.7) + (keyword_overlap * 0.3)
+                
+                # Map to 1-5 scale with better calibration
+                # Higher similarity scores should map to higher relevance
+                # Calibration: 0.7+ similarity → 4.0+, 0.5-0.7 → 3.0-4.0, 0.3-0.5 → 2.0-3.0, <0.3 → 1.0-2.0
+                if combined_score >= 0.7:
+                    score = 3.5 + (combined_score - 0.7) * 5.0  # 3.5 to 5.0
+                elif combined_score >= 0.5:
+                    score = 2.5 + (combined_score - 0.5) * 5.0  # 2.5 to 3.5
+                elif combined_score >= 0.3:
+                    score = 1.5 + (combined_score - 0.3) * 5.0  # 1.5 to 2.5
+                else:
+                    score = 1.0 + (combined_score / 0.3) * 0.5  # 1.0 to 1.5
+                
                 scores.append(min(5.0, max(1.0, score)))
             return scores
         
@@ -241,16 +276,60 @@ Respond with ONLY a single number (1, 2, 3, 4, or 5). No explanation."""
             except Exception as e:
                 error_msg = str(e)
                 if "429" in error_msg or "quota" in error_msg.lower():
-                    self.console.print(f"[yellow]Rate limit hit for chunk {i+1}, using fallback scoring[/yellow]")
-                    # Fallback to template-based
+                    self.console.print(f"[yellow]Rate limit hit for chunk {i+1}, using improved fallback scoring[/yellow]")
+                    # Use improved fallback scoring (same as when Gemini unavailable)
+                    if similarities and i < len(similarities):
+                        embedding_sim = similarities[i]
+                    else:
+                        question_embedding = self.embedding_model.encode([question])[0]
+                        chunk_embedding = self.embedding_model.encode([chunk])[0]
+                        embedding_sim = np.dot(question_embedding, chunk_embedding) / (
+                            np.linalg.norm(question_embedding) * np.linalg.norm(chunk_embedding)
+                        )
+                    
                     question_words = set(question.lower().split())
                     chunk_words = set(chunk.lower().split())
-                    overlap = len(question_words & chunk_words) / len(question_words) if question_words else 0
-                    score = 1.0 + (overlap * 4.0)
+                    keyword_overlap = len(question_words & chunk_words) / len(question_words) if question_words else 0
+                    combined_score = (embedding_sim * 0.7) + (keyword_overlap * 0.3)
+                    
+                    # Same calibration as main fallback
+                    if combined_score >= 0.7:
+                        score = 3.5 + (combined_score - 0.7) * 5.0
+                    elif combined_score >= 0.5:
+                        score = 2.5 + (combined_score - 0.5) * 5.0
+                    elif combined_score >= 0.3:
+                        score = 1.5 + (combined_score - 0.3) * 5.0
+                    else:
+                        score = 1.0 + (combined_score / 0.3) * 0.5
+                    
                     scores.append(min(5.0, max(1.0, score)))
                 else:
-                    self.console.print(f"[yellow]Error judging chunk {i+1}: {e}, using default score 3.0[/yellow]")
-                    scores.append(3.0)
+                    self.console.print(f"[yellow]Error judging chunk {i+1}: {e}, using improved fallback scoring[/yellow]")
+                    # Use fallback scoring for any error
+                    if similarities and i < len(similarities):
+                        embedding_sim = similarities[i]
+                    else:
+                        question_embedding = self.embedding_model.encode([question])[0]
+                        chunk_embedding = self.embedding_model.encode([chunk])[0]
+                        embedding_sim = np.dot(question_embedding, chunk_embedding) / (
+                            np.linalg.norm(question_embedding) * np.linalg.norm(chunk_embedding)
+                        )
+                    
+                    question_words = set(question.lower().split())
+                    chunk_words = set(chunk.lower().split())
+                    keyword_overlap = len(question_words & chunk_words) / len(question_words) if question_words else 0
+                    combined_score = (embedding_sim * 0.7) + (keyword_overlap * 0.3)
+                    
+                    if combined_score >= 0.7:
+                        score = 3.5 + (combined_score - 0.7) * 5.0
+                    elif combined_score >= 0.5:
+                        score = 2.5 + (combined_score - 0.5) * 5.0
+                    elif combined_score >= 0.3:
+                        score = 1.5 + (combined_score - 0.3) * 5.0
+                    else:
+                        score = 1.0 + (combined_score / 0.3) * 0.5
+                    
+                    scores.append(min(5.0, max(1.0, score)))
         
         return scores
     
@@ -300,16 +379,21 @@ Respond with ONLY a single number (1, 2, 3, 4, or 5). No explanation."""
         """
         Determine routing decision based on relevance score
         
+        Adjusted thresholds to account for fallback scoring being more conservative:
+        - 3.0+ for LOCAL (was 4.0+)
+        - 2.0+ for HYBRID (was 3.0+)
+        - < 2.0 tries web search first
+        
         Returns:
             (source_type, reasoning) tuple
             source_type: 'local', 'web', 'hybrid', 'decline'
         """
-        if average_score >= 4.0:
+        if average_score >= 3.0:
             return ("local", f"High confidence (score {average_score:.2f}) - using local docs only")
-        elif average_score >= 3.0:
+        elif average_score >= 2.0:
             return ("hybrid", f"Medium confidence (score {average_score:.2f}) - combining local + web")
         else:
-            # All scores < 3.0 should try web search first
+            # All scores < 2.0 should try web search first
             return ("web", f"Low confidence (score {average_score:.2f}) - trying web search first")
     
     def generate_answer(self, question: str, local_chunks: List[str] = None, web_results: List[Dict] = None) -> str:
@@ -424,7 +508,7 @@ Answer:"""
         if show_details:
             self.console.print("[dim]Judging relevance of retrieved chunks...[/dim]")
         
-        relevance_scores = self.judge_relevance(question, local_chunks)
+        relevance_scores = self.judge_relevance(question, local_chunks, similarities=similarities)
         average_score = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 0.0
         
         # Step 3: Determine routing

@@ -229,10 +229,10 @@ python3 crag_system.py --collection chunk_experiment_medium
 **What it does:**
 1. Retrieves top-k chunks from local ChromaDB
 2. Uses Gemini to score relevance (1-5 scale) for each chunk
-3. Routes based on average relevance score:
-   - **4.0-5.0**: Use local docs only (high confidence)
-   - **3.0-3.9**: Hybrid mode (combine local + web)
-   - **< 3.0**: Try web search first (low confidence)
+3. Routes based on average relevance score (adjusted for fallback scoring):
+   - **3.0+**: Use local docs only (high confidence)
+   - **2.0-2.9**: Hybrid mode (combine local + web)
+   - **< 2.0**: Try web search first (low confidence)
    - **Only decline** if web search fails or unavailable
 4. Generates answer from selected source(s)
 
@@ -243,13 +243,15 @@ python3 crag_system.py --collection chunk_experiment_medium
 - Web search results (if applicable)
 - Final answer
 
-**Routing Decision Matrix:**
+**Routing Decision Matrix (Adjusted Thresholds):**
 | Relevance Score | Action | Cost |
 |----------------|--------|------|
-| 4.0-5.0 | Local only | 1 embedding + 1 LLM call |
-| 3.0-3.9 | Hybrid (Local + Web) | 1 embedding + 1 web search + 1 LLM call |
-| < 3.0 | Try web search first | 1 embedding + 1 web search + 1 LLM call |
+| 3.0+ | Local only | 1 embedding + 1 LLM call |
+| 2.0-2.9 | Hybrid (Local + Web) | 1 embedding + 1 web search + 1 LLM call |
+| < 2.0 | Try web search first | 1 embedding + 1 web search + 1 LLM call |
 | Web fails | Decline | 1 embedding call only |
+
+**Note:** Thresholds adjusted to account for improved fallback scoring when Gemini API rate limits are hit. Fallback now uses embedding similarity (70%) + keyword matching (30%) for more accurate scores.
 
 **Key Discovery:**
 - CRAG extends Self-RAG's "I don't know" with "I'll search the web"

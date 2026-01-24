@@ -401,10 +401,10 @@ When adding new findings:
 **Date:** 2026-01-13
 **What we tested:**
 - Built CRAG system extending Self-RAG with intelligent web search routing
-- Implemented 3-tier routing logic with web-first fallback:
-  - 4.0-5.0: Local only (high confidence)
-  - 3.0-3.9: Hybrid (combine local + web)
-  - < 3.0: Try web search first (low confidence)
+- Implemented 3-tier routing logic with web-first fallback (adjusted thresholds):
+  - 3.0+: Local only (high confidence)
+  - 2.0-2.9: Hybrid (combine local + web)
+  - < 2.0: Try web search first (low confidence)
   - Only decline if web search fails or unavailable
 - Integrated Tavily API for web search (free tier: 1000 requests/month)
 - Tested with 3 scenarios: good local match, bad local match, hybrid
@@ -419,12 +419,12 @@ When adding new findings:
 - **Fallback Chain**: Local → Web → Decline provides graceful degradation
 - **Web Search Integration**: Tavily API provides high-quality, RAG-optimized search results
 
-**Routing Decision Matrix:**
+**Routing Decision Matrix (Adjusted Thresholds):**
 | Relevance Score | Action | Reasoning |
 |----------------|--------|-----------|
-| 4.0-5.0 | Local only | High confidence in local knowledge |
-| 3.0-3.9 | Hybrid (Local + Web) | Medium confidence, verify with web |
-| < 3.0 | Try web search first | Low confidence, attempt web search |
+| 3.0+ | Local only | High confidence in local knowledge |
+| 2.0-2.9 | Hybrid (Local + Web) | Medium confidence, verify with web |
+| < 2.0 | Try web search first | Low confidence, attempt web search |
 | Web fails | Decline | Web unavailable, avoid hallucination |
 
 **Test Results:**
@@ -448,12 +448,26 @@ When adding new findings:
   - Questions outside local knowledge base
   - Verification of local answers
 
-**Bug Fix - Routing Hierarchy:**
-- **Initial Bug**: Scores < 2.0 were declining instead of trying web search
-- **Root Cause**: Routing logic had hard threshold at 2.0, causing premature declines
-- **Fix**: Changed to "web-first" approach: all scores < 3.0 try web search, only decline if web fails
-- **Insight**: Discovered proper routing hierarchy: Local high confidence (≥3.0) → Local only; Local low confidence (<3.0) → Try web; Web fails → Only then decline
-- **Production Pattern**: This is production-grade logic - always attempt external sources before declining
+**Bug Fixes - Routing & Scoring:**
+
+1. **Routing Hierarchy Fix:**
+   - **Initial Bug**: Scores < 2.0 were declining instead of trying web search
+   - **Root Cause**: Routing logic had hard threshold at 2.0, causing premature declines
+   - **Fix**: Changed to "web-first" approach: all scores < 2.0 try web search, only decline if web fails
+   - **Insight**: Discovered proper routing hierarchy: Local high confidence (≥3.0) → Local only; Local low confidence (<2.0) → Try web; Web fails → Only then decline
+
+2. **Threshold Adjustment:**
+   - **Problem**: Original thresholds (4.0+ for LOCAL, 3.0+ for HYBRID) too high for fallback scoring
+   - **Root Cause**: Rate limits → fallback keyword matching → lower scores → wrong routing
+   - **Fix**: Lowered thresholds (3.0+ for LOCAL, 2.0+ for HYBRID) to account for fallback scoring
+   - **Result**: More accurate routing even when Gemini API unavailable
+
+3. **Improved Fallback Scoring:**
+   - **Problem**: Simple keyword matching too inaccurate, causing score inconsistency
+   - **Root Cause**: Fallback only used keyword overlap, ignoring semantic similarity
+   - **Fix**: Combined embedding similarity (70%) + keyword matching (30%) for better accuracy
+   - **Calibration**: Better mapping to 1-5 scale based on combined score ranges
+   - **Result**: More consistent scores even when Gemini rate limited
 
 **Files Created/Modified:**
 - `crag_system.py` - Complete CRAG implementation with web search fallback
