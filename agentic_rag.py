@@ -79,6 +79,11 @@ class AgenticRAG:
         self.quality_threshold = quality_threshold
         self.max_iterations = max_iterations
         
+        # Rate limiting tracking
+        self.last_api_call_time = 0
+        self.request_count = 0
+        self.min_delay = 7  # Minimum delay between calls (safer than 6)
+        
         # Initialize ChromaDB
         self.client = chromadb.PersistentClient(
             path="./chroma_db",
@@ -131,6 +136,7 @@ class AgenticRAG:
                 self.rpm_limit = rpm
                 self.model_name = model_name
                 self.console.print(f"[green]✓[/green] Using {display_name} ({rpm} RPM)")
+                self.console.print(f"[dim]Rate limit: {rpm} requests/minute = {60/rpm:.1f}s delay between calls[/dim]")
                 return
             except Exception:
                 continue
@@ -154,6 +160,25 @@ class AgenticRAG:
         
         return chunks, similarities, ids
     
+    def _wait_for_rate_limit(self):
+        """Wait to respect rate limits"""
+        if not self.gemini_client:
+            return
+        
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_api_call_time
+        
+        # Calculate required delay based on RPM limit
+        required_delay = max(self.min_delay, 60.0 / self.rpm_limit)
+        
+        if time_since_last_call < required_delay:
+            wait_time = required_delay - time_since_last_call
+            if wait_time > 0.1:  # Only sleep if meaningful delay
+                time.sleep(wait_time)
+        
+        self.last_api_call_time = time.time()
+        self.request_count += 1
+    
     def generate_answer(self, question: str, chunks: List[str]) -> str:
         """Generate answer from retrieved chunks"""
         if not self.gemini_client:
@@ -176,6 +201,9 @@ Question: {question}
 Answer:"""
         
         try:
+            # Rate limiting
+            self._wait_for_rate_limit()
+            
             response = self.gemini_client.generate_content(
                 prompt,
                 generation_config={
@@ -262,8 +290,7 @@ Format: "SCORE: X. REASON: [your reason]"
         
         try:
             # Rate limiting
-            delay = max(6, 60 / self.rpm_limit)
-            time.sleep(delay)
+            self._wait_for_rate_limit()
             
             response = self.gemini_client.generate_content(
                 prompt,
@@ -372,8 +399,7 @@ Respond with ONLY the refined query. No explanation, just the new query."""
         
         try:
             # Rate limiting
-            delay = max(6, 60 / self.rpm_limit)
-            time.sleep(delay)
+            self._wait_for_rate_limit()
             
             response = self.gemini_client.generate_content(
                 prompt,
@@ -767,13 +793,20 @@ def main():
     ))
     
     results = []
-    for test in test_questions:
+    for i, test in enumerate(test_questions, 1):
+        console.print(f"\n[bold yellow]Running test {i}/{len(test_questions)}...[/bold yellow]")
         result = agentic_rag.process_question(test["question"], top_k=args["top_k"])
         result["expected_iterations"] = test["expected_iterations"]
         result["category"] = test["category"]
         results.append(result)
         agentic_rag.display_results(result)
         console.print("=" * 80)
+        
+        # Add delay between questions to avoid rate limits
+        if i < len(test_questions):
+            delay = max(10, 60 / agentic_rag.rpm_limit * 2)  # 2x safety margin
+            console.print(f"[dim]Waiting {delay:.1f}s before next question to respect rate limits...[/dim]")
+            time.sleep(delay)
     
     # Summary
     console.print()
