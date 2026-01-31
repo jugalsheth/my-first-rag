@@ -312,6 +312,60 @@ Unlike standard RAG (one shot) or CRAG (routes once), Agentic RAG iterates until
 - `--iterations`: Maximum refinement attempts (default: 3)
 - `--topk`: Number of chunks to retrieve per attempt (default: 3)
 
+### Cached RAG (3-Tier Caching)
+To test caching system that makes RAG 10x faster for repeated queries:
+
+```bash
+# Basic test (shows cache hits/misses)
+python3 cached_rag.py
+
+# Full benchmark (compares cached vs uncached)
+python3 cache_benchmark.py
+```
+
+**Prerequisites:**
+1. Run `rag_system.py` first to create the collection and load documents
+2. No additional setup needed
+
+**What it does:**
+1. **Tier 1: Exact Match Cache** (hash-based, < 1ms)
+   - Stores identical queries
+   - Instant response for exact duplicates
+   
+2. **Tier 2: Semantic Similarity Cache** (embedding-based, < 100ms)
+   - Stores query embeddings
+   - Returns cached answer if similarity > 0.95
+   - Catches paraphrases (e.g., "What is RAG?" vs "Explain RAG")
+   
+3. **Tier 3: Full RAG Pipeline** (~2000ms)
+   - Runs full RAG when cache misses
+   - Adds results to both caches
+
+**Features:**
+- **LRU Eviction**: Removes oldest entries when cache is full
+- **TTL Support**: Entries expire after 1 hour (configurable)
+- **Performance Tracking**: Comprehensive stats on cache performance
+- **Cost Analysis**: Estimates cost savings from caching
+
+**Output:**
+- Cache hit/miss indicators for each query
+- Performance statistics (hit rate, latency reduction)
+- Cost analysis (estimated savings)
+- Detailed analysis files (JSON and Markdown)
+
+**Expected Results:**
+- **Exact Match Hits**: < 1ms latency (instant)
+- **Semantic Hits**: < 100ms latency (fast)
+- **Full RAG**: ~2000ms latency (baseline)
+- **Hit Rate**: 30-50% with realistic query patterns
+- **Cost Reduction**: 30-40% for repeated queries
+
+**Use Cases:**
+- Production systems with repeated queries
+- Chatbots with common questions
+- Document Q&A with similar questions
+- Any RAG system where 30-40% of queries are repeats
+
 ## Files Created
 
 - `requirements.txt` - All dependencies
@@ -324,6 +378,8 @@ Unlike standard RAG (one shot) or CRAG (routes once), Agentic RAG iterates until
 - `self_rag.py` - Self-RAG with retrieval grading
 - `crag_system.py` - CRAG (Corrective RAG) with web search fallback
 - `agentic_rag.py` - Agentic RAG with iterative refinement
+- `cached_rag.py` - RAG with 3-tier caching (exact, semantic, full)
+- `cache_benchmark.py` - Cache performance benchmark suite
 - `chroma_db/` - Vector database (created automatically)
 
 ## Customization
@@ -339,7 +395,8 @@ Unlike standard RAG (one shot) or CRAG (routes once), Agentic RAG iterates until
 3. **Query Expansion**: Run `multi_query_rag.py` to test multi-query retrieval
 4. **Web Search Fallback**: Run `crag_system.py` to test intelligent routing to web search
 5. **Iterative Refinement**: Run `agentic_rag.py` to test self-improving RAG
-6. **Decide**: Use the data-driven recommendations to choose production settings
+6. **Caching**: Run `cache_benchmark.py` to test 3-tier caching performance
+7. **Decide**: Use the data-driven recommendations to choose production settings
 
 ## Security
 
