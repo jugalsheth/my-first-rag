@@ -1,0 +1,13 @@
+# RAG Research Project - Context Rules
+
+## Context Documents (contextdoc/)
+
+This project has a **contextdoc/** folder containing canonical research and planning documents. When working on RAG systems, evaluation, or project planning in this repo, **always consider and follow** the context from these documents:
+
+- **90_DAY_RAG_MASTER_PLAN.md.pdf** – 90-day RAG master plan; use for roadmap, priorities, and milestones.
+- **CRAGresearchppr.pdf** – CRAG (Corrective RAG) research; reference for uncertainty handling and retrieval correction.
+- **Precise Zero-Shot Denseresearch.pdf** – Dense retrieval / zero-shot research; reference for embeddings and retrieval.
+- **Ragas- Automated Evaluationresearch.pdf** – Ragas automated evaluation; reference for RAG evaluation metrics and methodology.
+- **Researchpaper.pdf** – General RAG research paper; core reference for RAG design and techniques.
+
+**Rule:** When making decisions about RAG architecture, evaluation, chunking, retrieval, or project direction, prefer approaches and terminology that align with these context documents. When unsure, treat contextdoc/ as the source of truth for this project’s research context.

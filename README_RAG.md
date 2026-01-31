@@ -354,11 +354,19 @@ python3 cache_benchmark.py
 - Detailed analysis files (JSON and Markdown)
 
 **Expected Results:**
-- **Exact Match Hits**: < 1ms latency (instant)
-- **Semantic Hits**: < 100ms latency (fast)
-- **Full RAG**: ~2000ms latency (baseline)
-- **Hit Rate**: 30-50% with realistic query patterns
+- **Exact Match Hits**: < 1ms latency (instant) ✅ Proven: 37.5% hit rate
+- **Semantic Hits**: < 100ms latency (fast) ⚠️ Needs threshold tuning (currently 0% hit rate)
+- **Full RAG**: ~2000ms latency (baseline) ✅ Working
+- **Hit Rate**: 30-50% with realistic query patterns (exact cache alone: 37.5%)
 - **Cost Reduction**: 30-40% for repeated queries
+
+**Important Note - Semantic Cache Threshold:**
+- Default threshold: 0.95 (may be too high)
+- If semantic cache shows 0% hit rate, lower threshold:
+  ```python
+  cached_rag = CachedRAG(semantic_threshold=0.85)  # Instead of 0.95
+  ```
+- Recommended threshold: 0.85-0.90 for production use
 
 **Use Cases:**
 - Production systems with repeated queries

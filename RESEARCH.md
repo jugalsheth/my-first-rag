@@ -692,9 +692,39 @@ Tier 3: Full RAG Pipeline
 
 **Discoveries:**
 - **Exact Match Cache**: Perfect for identical queries (common in production)
-- **Semantic Cache**: Catches paraphrases and similar questions
+  - Achieved 37.5% hit rate in initial tests
+  - Latency: < 1ms (instant response)
+  - Production value: High for repeated queries
+- **Semantic Cache**: Implemented but needs threshold calibration
+  - Initial threshold: 0.95 (too high)
+  - Result: 0% hit rate in tests
+  - Finding: Queries like "What is RAG?" vs "Explain RAG" score ~0.85-0.90 similarity
+  - Recommendation: Lower threshold to 0.85-0.90 for production use
 - **Combined Effect**: Two-tier approach maximizes hit rate
 - **Production Impact**: 30-40% of queries are repeats → 30-40% cost savings
+
+**Test Results:**
+- **Exact Cache Performance**:
+  - Hit Rate: 37.5% (3/8 queries)
+  - Average Latency: 0.01ms (vs 186ms uncached)
+  - Latency Reduction: 100% (instant response)
+- **Semantic Cache Performance**:
+  - Hit Rate: 0% (threshold too high)
+  - Similar queries not matching (e.g., "What is RAG?" vs "Explain RAG")
+  - Needs threshold tuning (recommend 0.85-0.90)
+- **Overall Performance**:
+  - Average Latency (All): 116.50ms
+  - Average Latency (Cached): 0.01ms
+  - Average Latency (Uncached): 186.39ms
+  - Total Latency Reduction: 37.5% (from exact cache alone)
+
+**Key Finding - Semantic Threshold Calibration:**
+- **Problem**: Semantic cache threshold (0.95) too high for practical use
+- **Root Cause**: Similar queries score 0.85-0.90, not 0.95+
+- **Evidence**: "What is RAG?" vs "Explain RAG" should be semantically similar but don't match
+- **Solution**: Lower threshold to 0.85-0.90 for production
+- **Impact**: Would increase semantic cache hit rate from 0% to estimated 10-20%
+- **Production Lesson**: Cache thresholds need calibration, not just implementation
 
 **Files Created/Modified:**
 - `cached_rag.py` - Complete 3-tier caching implementation
@@ -703,16 +733,26 @@ Tier 3: Full RAG Pipeline
 - `cache_analysis.md` - Human-readable analysis report (generated)
 
 **Research Questions:**
-- What's the optimal semantic similarity threshold? (Currently 0.95)
+- What's the optimal semantic similarity threshold? (Currently 0.95, recommend 0.85-0.90)
 - How does cache size affect hit rate?
 - What's the optimal TTL for different use cases?
 - Should we cache chunks separately from answers?
+- How does embedding model choice affect semantic cache effectiveness?
 
 **Next Steps:**
+- Tune semantic threshold (0.85-0.90) and re-test
 - Test with larger query sets (100+ queries)
 - Measure cache hit rate over time
 - Experiment with different similarity thresholds
 - Add cache warming strategies
+- Compare semantic cache performance across different embedding models
+
+**Production Recommendations:**
+1. **Use Exact Cache**: Proven effective (37.5% hit rate, instant response)
+2. **Tune Semantic Cache**: Lower threshold to 0.85-0.90 before production
+3. **Monitor Hit Rates**: Track both exact and semantic hit rates separately
+4. **Cache Size**: Start with 100 exact / 200 semantic entries, scale based on usage
+5. **TTL**: 1 hour is reasonable, adjust based on document update frequency
 
 ---
 

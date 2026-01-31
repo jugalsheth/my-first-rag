@@ -1,0 +1,163 @@
+{
+  "timestamp": "2026-01-31T13:12:04.636708",
+  "benchmark_config": {
+    "total_queries": 20,
+    "unique_queries": 10,
+    "repeat_queries": 10,
+    "repeat_rate": 50.0
+  },
+  "uncached_performance": {
+    "total_time_ms": 917.1929359436035,
+    "average_latency_ms": 45.59926986694336,
+    "total_queries": 20,
+    "estimated_cost": 0.002
+  },
+  "cached_performance": {
+    "total_time_ms": 243.03102493286133,
+    "average_latency_ms": 11.92711591720581,
+    "cache_stats": {
+      "total_queries": 20,
+      "exact_hits": 10,
+      "semantic_hits": 0,
+      "full_rag_calls": 10,
+      "hit_rate": 50.0,
+      "exact_hit_rate": 50.0,
+      "semantic_hit_rate": 0.0,
+      "avg_latency_ms": 7.820367813110352,
+      "avg_cached_latency_ms": 0.0024318695068359375,
+      "avg_uncached_latency_ms": 15.638303756713867,
+      "latency_reduction": 99.98444927567165,
+      "exact_cache_size": 10,
+      "semantic_cache_size": 10
+    },
+    "estimated_cost": 0.001
+  },
+  "improvements": {
+    "total_time_reduction": 73.50273694783397,
+    "average_latency_reduction": 73.84362523345527,
+    "cost_reduction": 50.0,
+    "cache_hit_rate": 50.0
+  },
+  "query_history": [
+    {
+      "query": "What is RAG?",
+      "tier": "full_rag",
+      "latency_ms": 13.695955276489258,
+      "timestamp": "2026-01-31T13:12:04.414393"
+    },
+    {
+      "query": "How does RAG work?",
+      "tier": "full_rag",
+      "latency_ms": 16.952037811279297,
+      "timestamp": "2026-01-31T13:12:04.441368"
+    },
+    {
+      "query": "What are the benefits of RAG?",
+      "tier": "full_rag",
+      "latency_ms": 17.831802368164062,
+      "timestamp": "2026-01-31T13:12:04.467735"
+    },
+    {
+      "query": "Explain chunking in RAG",
+      "tier": "full_rag",
+      "latency_ms": 14.589786529541016,
+      "timestamp": "2026-01-31T13:12:04.490747"
+    },
+    {
+      "query": "What is an embedding model?",
+      "tier": "full_rag",
+      "latency_ms": 15.913248062133789,
+      "timestamp": "2026-01-31T13:12:04.514611"
+    },
+    {
+      "query": "How does vector search work?",
+      "tier": "full_rag",
+      "latency_ms": 15.651226043701172,
+      "timestamp": "2026-01-31T13:12:04.538970"
+    },
+    {
+      "query": "What is ChromaDB?",
+      "tier": "full_rag",
+      "latency_ms": 18.017053604125977,
+      "timestamp": "2026-01-31T13:12:04.565072"
+    },
+    {
+      "query": "Explain semantic similarity",
+      "tier": "full_rag",
+      "latency_ms": 13.545989990234375,
+      "timestamp": "2026-01-31T13:12:04.586602"
+    },
+    {
+      "query": "What are RAG use cases?",
+      "tier": "full_rag",
+      "latency_ms": 14.737844467163086,
+      "timestamp": "2026-01-31T13:12:04.608648"
+    },
+    {
+      "query": "How to improve RAG accuracy?",
+      "tier": "full_rag",
+      "latency_ms": 15.44809341430664,
+      "timestamp": "2026-01-31T13:12:04.631774"
+    },
+    {
+      "query": "What is RAG?",
+      "tier": "exact",
+      "latency_ms": 0.007867813110351562,
+      "timestamp": "2026-01-31T13:12:04.632082"
+    },
+    {
+      "query": "What is RAG?",
+      "tier": "exact",
+      "latency_ms": 0.00286102294921875,
+      "timestamp": "2026-01-31T13:12:04.632265"
+    },
+    {
+      "query": "How does RAG work?",
+      "tier": "exact",
+      "latency_ms": 0.0019073486328125,
+      "timestamp": "2026-01-31T13:12:04.632405"
+    },
+    {
+      "query": "What are the benefits of RAG?",
+      "tier": "exact",
+      "latency_ms": 0.0019073486328125,
+      "timestamp": "2026-01-31T13:12:04.632543"
+    },
+    {
+      "query": "What is RAG?",
+      "tier": "exact",
+      "latency_ms": 0.0021457672119140625,
+      "timestamp": "2026-01-31T13:12:04.632675"
+    },
+    {
+      "query": "Explain chunking in RAG",
+      "tier": "exact",
+      "latency_ms": 0.0019073486328125,
+      "timestamp": "2026-01-31T13:12:04.632808"
+    },
+    {
+      "query": "What is RAG?",
+      "tier": "exact",
+      "latency_ms": 0.00095367431640625,
+      "timestamp": "2026-01-31T13:12:04.632942"
+    },
+    {
+      "query": "How does RAG work?",
+      "tier": "exact",
+      "latency_ms": 0.0016689300537109375,
+      "timestamp": "2026-01-31T13:12:04.633073"
+    },
+    {
+      "query": "What is RAG?",
+      "tier": "exact",
+      "latency_ms": 0.0011920928955078125,
+      "timestamp": "2026-01-31T13:12:04.633204"
+    },
+    {
+      "query": "What are the benefits of RAG?",
+      "tier": "exact",
+      "latency_ms": 0.0019073486328125,
+      "timestamp": "2026-01-31T13:12:04.633334"
+    }
+  ]
+}
