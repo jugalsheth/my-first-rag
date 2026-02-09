@@ -1,0 +1,165 @@
+{
+  "day": 18,
+  "description": "Cost optimization via query complexity routing (simple\u21924B, complex\u219212B)",
+  "num_queries": 20,
+  "baseline_cost_all_12b": 0.0046,
+  "routed_cost": 0.0031,
+  "savings_dollars": 0.0015,
+  "savings_percent": 32.6,
+  "routed_breakdown": {
+    "total_queries": 20,
+    "total_cost": 0.0031,
+    "by_model": {
+      "gemma_4b": {
+        "count": 10,
+        "cost": 0.0008
+      },
+      "gemma_12b": {
+        "count": 10,
+        "cost": 0.0023
+      }
+    }
+  },
+  "per_query": [
+    {
+      "query": "What is RAG?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (3)"
+    },
+    {
+      "query": "Who wrote the CRAG paper?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (5)"
+    },
+    {
+      "query": "When was BERT released?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (4)"
+    },
+    {
+      "query": "What is chunk size?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (4)"
+    },
+    {
+      "query": "Who invented the transformer?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (4)"
+    },
+    {
+      "query": "When to use dense retrieval?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (5)"
+    },
+    {
+      "query": "What is embedding?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (3)"
+    },
+    {
+      "query": "Which model is best for RAG?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (6)"
+    },
+    {
+      "query": "What is top-k?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (3)"
+    },
+    {
+      "query": "Who proposed HyDE?",
+      "complexity": "simple",
+      "model_used": "gemma_4b",
+      "cost": 0.0001,
+      "reason": "length < 10 words (3)"
+    },
+    {
+      "query": "Compare dense and sparse retrieval for RAG systems.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'compare'"
+    },
+    {
+      "query": "Analyze the trade-offs between chunk size and retrieval accuracy.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'analyze'"
+    },
+    {
+      "query": "Explain how self-RAG improves answer quality through iterative refinement.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'explain'"
+    },
+    {
+      "query": "Why does multi-query retrieval improve coverage?",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'why'"
+    },
+    {
+      "query": "How does re-ranking improve precision in two-stage retrieval?",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'how'"
+    },
+    {
+      "query": "Compare CRAG and Self-RAG routing strategies.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'compare'"
+    },
+    {
+      "query": "Explain the role of uncertainty estimation in corrective RAG.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'explain'"
+    },
+    {
+      "query": "Why is chunk overlap important in document splitting?",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "short but contains 'why'"
+    },
+    {
+      "query": "How do hypothetical documents bridge the semantic gap in HyDE?",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "contains 'how'"
+    },
+    {
+      "query": "Analyze when to use local vs web fallback in CRAG.",
+      "complexity": "complex",
+      "model_used": "gemma_12b",
+      "cost": 0.0002,
+      "reason": "contains 'analyze'"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-02-09T00:31:37.223223Z",
+  "baseline": {
+    "embedding": 0.5001,
+    "llm": 0.216,
+    "storage": 0.3,
+    "total": 1.0161,
+    "embedding_api_calls": 100,
+    "llm_input_tokens": 105000,
+    "llm_output_tokens": 15000
+  },
+  "optimized": {
+    "costs": {
+      "embedding": 0.0351,
+      "embedding_api_calls": 7,
+      "llm": 0.1008,
+      "llm_input_tokens": 31500,
+      "llm_output_tokens": 10500,
+      "storage": 0.0003,
+      "storage_bytes": 27160,
+      "total": 0.1362
+    },
+    "cache": {
+      "size": 70,
+      "limit": 100
+    },
+    "cache_hits": 30
+  },
+  "savings": {
+    "total_baseline": 1.0161,
+    "total_optimized": 0.1362,
+    "savings_percent": 86.6,
+    "savings_dollars": 0.8799
+  },
+  "quality": {
+    "compression_mse": 5e-06,
+    "compression_note": "float32\u2192int8 typically <2% accuracy impact in retrieval"
+  },
+  "roi": {
+    "queries_processed": 100,
+    "savings_per_1000_queries": 8.8,
+    "monthly_30k_queries": 263.97,
+    "annual": 3167.64
+  }
+}

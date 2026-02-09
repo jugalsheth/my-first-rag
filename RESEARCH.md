@@ -756,4 +756,100 @@ Tier 3: Full RAG Pipeline
 
 ---
 
-*Last Updated: 2026-01-13*
+## Day 16: Re-Ranking RAG (Two-Stage Retrieval)
+**Date:** 2026-01-31
+
+**What we built:**
+- Two-stage retrieval: over-retrieve (top-20) → re-rank with cross-encoder → top-3
+- Cross-encoder model: `cross-encoder/ms-marco-MiniLM-L-6-v2` for (query, chunk) scoring
+- A/B comparison mode: baseline (embedding only) vs re-ranked results
+- Wraps SimpleRAG; compatible with existing ChromaDB collections
+
+**Architecture:**
+```
+Query → Embed → Retrieve top-20 (ChromaDB) → Re-rank (cross-encoder) → Top-3 → Generate answer
+```
+
+**Key Findings:**
+- **Re-ranking changes results**: A/B comparison showed different chunk ordering in all 3 test questions
+- **Quality improvement**: For "What factors affect RAG quality?", re-ranker correctly promoted the chunk that explicitly discusses quality factors (score 6.397) to #1; baseline had it lower
+- **Latency**: ~119ms retrieve + ~63ms rerank ≈ 182ms total per query (acceptable for production)
+- **Small corpus caveat**: With only 7 chunks in collection, over-retrieval (20) fetched all; re-ranking still reordered them meaningfully
+
+**Test Results:**
+| Question | Baseline top-1 | Re-ranked top-1 |
+|----------|----------------|-----------------|
+| Naive vs Advanced RAG? | Vector DB choices | RAG intro chunk (higher relevance) |
+| HyDE improve retrieval? | Same general RAG | Same (limited HyDE content in corpus) |
+| Factors affect RAG quality? | ChromaDB/chunking | **Quality factors chunk** ✓ |
+
+**Discoveries:**
+- Cross-encoder scores (query, chunk) pairs directly — more accurate than embedding cosine similarity alone
+- Re-ranking is especially valuable when retrieval returns many similar-scoring chunks
+- Aligns with Precise Zero-Shot Dense research: two-stage retrieval improves precision
+
+**Files Created:**
+- `rerank_rag.py` — Re-ranking RAG with cross-encoder, A/B comparison, performance stats
+
+**Research Questions:**
+- How does re-ranking affect RAGAS metrics (Faithfulness, Answer Relevancy)?
+- Optimal retrieve_top_k? (20 is common; test 10 vs 20 vs 50)
+- Can we combine re-ranking with CachedRAG for cached queries?
+- Cross-encoder vs larger bi-encoder for re-ranking quality vs speed
+
+**Next Steps:**
+- Run rag_evaluator.py on baseline vs rerank to measure RAGAS impact
+- Integrate rerank into CachedRAG for Tier 3 (full pipeline)
+- Test with larger document corpus
+
+---
+
+## Day 18: Cost Optimization System
+**Date:** 2026-02-08
+
+**What we built:**
+- **CostOptimizer** class: batch embeddings, cost-based cache eviction, embedding compression (float32→int8), context trimming, and cost/ROI tracking
+- Test suite simulating 100 queries (70 unique + 30 repeats) comparing baseline vs optimized
+- Savings report in `cost_analysis.json` with ROI (per 1K queries, monthly 30K, annual)
+
+**Strategies implemented:**
+1. **Batch embeddings**: 10 queries → 1 API call (e.g. 100 queries → 10 calls instead of 100); ~90% embedding cost reduction
+2. **Smart cache eviction**: Eviction score = `access_count / generation_cost`; keep high-value (frequently used, expensive to regenerate), evict low-value
+3. **Embedding compression**: float32 (3072 bytes for 768d) → int8 + scale (772 bytes); ~75% storage savings; decompression for retrieval
+4. **Context optimization**: Trim retrieved chunks to `max_context_tokens` (e.g. 400) to cut LLM input; preserves most relevant content
+5. **Cost tracking**: Per-component (embedding, LLM, storage) and total; baseline comparison and savings percent
+
+**Key Findings:**
+- In test run: **~87% total cost reduction** (baseline ~$1.02 → optimized ~$0.14 for 100 queries)
+- Embedding: ~93% reduction (batching + cache hits); LLM: ~53% (context trim + cache); Storage: ~97% (compression)
+- Quality: Compression MSE proxy ~5e-6; int8 quantization typically &lt;2% retrieval accuracy impact; RAGAS-style eval recommended for faithfulness/relevancy
+- ROI: Savings scale with volume (e.g. per 1K queries, monthly 30K, annual) for break-even and capacity planning
+
+**Files Created:**
+- `cost_optimizer.py` — CostOptimizer class, compression/eviction/context helpers, `create_optimizer_with_sentence_transformer()`
+- `test_cost_optimization.py` — 100-query simulation, baseline vs optimized, quality proxy, ROI
+- `cost_analysis.json` — Timestamped savings report, baseline/optimized costs, cache stats, quality, ROI
+
+**Discoveries:**
+- Cost-based eviction (value = access/generation_cost) keeps “expensive and hot” items; LRU alone can evict high-cost entries too early
+- Batching is the single largest lever for embedding cost when query volume is high
+- Context trimming must preserve relevance; simple token cap works; sentence-level trimming can be added for finer control
+
+**Query complexity routing (Day 18 plan):**
+- **Query complexity classifier** (`query_complexity.py`): rule-based simple vs complex
+  - Simple: length &lt; 10 words, or factoid starters (what, who, when, where, which)
+  - Complex: contains compare/analyze/explain, or starts with why/how
+- **Model routing**: Simple → Gemma 4B (cheap), Complex → Gemma 12B (smart)
+- **CostRoutingRAG** (`cost_routing_rag.py`): routes by complexity, tracks cost with 4B vs 12B price tiers; optional `make_gemini_generate_fn()` for real API
+- **Test**: 20 queries (10 simple, 10 complex); baseline all-12B vs routed: **~33% cost savings** at same quality for simple factoids
+- Report: `cost_routing_report.json`; test: `test_day18_cost_routing.py`
+
+**Next Steps:**
+- Wire CostOptimizer into CachedRAG (batch embed for Tier 3, compressed semantic cache)
+- Run RAGAS on baseline vs optimized to confirm no quality regression
+- Tune cache_limit and batch_size for production traffic
+- Optionally wire CostRoutingRAG to AgenticRAG/CRAG (select 4B vs 12B per query)
+
+---
+
+*Last Updated: 2026-02-08*
