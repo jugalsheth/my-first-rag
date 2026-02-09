@@ -24,6 +24,12 @@ This repository contains a systematic investigation into how different chunking 
 
 *See evaluation results for data-driven recommendations*
 
+### Research documentation
+
+- **[RESEARCH.md](RESEARCH.md)** — Day-by-day research log: what we built, findings, and artifacts (Days 1–19).
+- **Result reports:** `cost_optimization_results.md` (Day 18), `error_handling_results.md` (Day 19), `cost_routing_report.json`, `cache_analysis.json`.
+- **Plans:** `CURSOR_90_DAY_PLAN.md` (daily build plan), `90_DAY_RAG_MASTER_PLAN.md`.
+
 ---
 
 ## 🎯 Research Methodology
@@ -75,6 +81,16 @@ echo "GEMINI_API_KEY=your_gemini_key_here" > .env
 ```
 
 **Get your Gemini API key**: [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+### Using the real LLM for research
+
+For realistic results, the research **should use the real LLM (Gemini)** when possible:
+
+- **With `GEMINI_API_KEY` set:** Main RAG scripts (`agentic_rag.py`, `crag_system.py`, `self_rag.py`, `rag_evaluator.py`, etc.) call Gemini for generation. Error-handling and cost demos can use the live API too.
+- **Run error handling with real LLM:**  
+  `python3 run_with_llm.py`  
+  This uses Gemini as the backend for RobustRAG and prints logs (retries, cache, circuit). If the key is missing, it prints setup instructions and exits (no fake data).
+- **Without the key:** Some tests use **simulated** backends (e.g. `test_error_handling.py`, cost routing tests) so they run in CI or offline; they do not call Gemini. For research conclusions, run with the key when you can.
 
 ---
 

@@ -2,6 +2,25 @@
 
 This document tracks research findings and discoveries as we build and test our RAG system.
 
+---
+
+## Research index (90-day plan)
+
+| Days | Topic | Key artifacts |
+|------|--------|----------------|
+| 1–4 | Foundation: RAG, embeddings, chunking, RAGAS | `rag_system.py`, `chunk_experiment.py` |
+| 5 | Retrieval optimization, re-ranking | `rerank_rag.py` |
+| 8–12 | Multi-query, HyDE, Self-RAG, CRAG, Agentic RAG | `multi_query_rag.py`, `hyde_rag.py`, `self_rag.py`, `crag_system.py`, `agentic_rag.py` |
+| 15 | Caching (exact + semantic) | `cached_rag.py`, `cache_analysis.json` |
+| 16 | Re-ranking RAG | `rerank_rag.py` |
+| 17 | Monitoring | `monitoring.py`, `docs/DAY_17_MONITORING.md` |
+| 18 | Cost optimization (batching, routing 4B/12B, cache) | `cost_optimizer.py`, `query_complexity.py`, `cost_routing_rag.py`, `batched_cost_pipeline.py`, `cost_optimization_results.md`, `cost_routing_report.json` |
+| 19 | Error handling (retry, circuit breaker, graceful degradation) | `robust_rag.py`, `test_error_handling.py`, `error_handling_results.md`, `run_with_llm.py` |
+
+**Run with real LLM:** Set `GEMINI_API_KEY` in `.env`. Then: `python3 run_with_llm.py` (error-handling demo); Day 19 test runs optional Gemini scenario when key is set.
+
+---
+
 ## Day 1: Initial RAG System Setup
 
 **Date:** 2026-01-13
@@ -849,6 +868,25 @@ Query → Embed → Retrieve top-20 (ChromaDB) → Re-rank (cross-encoder) → T
 - Run RAGAS on baseline vs optimized to confirm no quality regression
 - Tune cache_limit and batch_size for production traffic
 - Optionally wire CostRoutingRAG to AgenticRAG/CRAG (select 4B vs 12B per query)
+
+---
+
+## Day 19: Error Handling
+**Date:** 2026-02-08
+
+**What we built:**
+- **robust_rag.py**: Retry with exponential backoff (attempt 1 immediate, 2 wait 2s, 3 wait 4s; max 3 attempts), circuit breaker (>50% fail in 1 min → open; cached fallback when open; close after 30s cooldown), graceful degradation (API down → cache; rate limit → retry; timeout → partial result message; no cache → "Service temporarily unavailable").
+- **test_error_handling.py**: Unit tests for retry and circuit breaker; scenarios for API failures, rate limit, timeout, circuit-open fallback. Success rate under failure measured.
+- **error_handling_results.md**: Unit check results, per-scenario metrics, summary (e.g. 44% overall success rate across 77 queries in failure scenarios).
+
+**Key behaviors:**
+- Retry: 3 attempts, delays [0, 2, 4] s (configurable via `retry_delays`).
+- Circuit breaker: opens when failure rate in last 60s > 50%; returns cached answer when open or "Service temporarily unavailable"; closes after 30s cooldown.
+- Graceful: cache fallback when possible; timeout returns partial message; rate limit handled by retry.
+
+**Testing:** `test_error_handling.py` runs simulated failure scenarios always; when `GEMINI_API_KEY` is set, also runs 2 real Gemini queries and adds a `real_llm_gemini` scenario to the report. `run_with_llm.py` runs RobustRAG with real Gemini and logging (no fake data).
+
+**Files:** `robust_rag.py`, `test_error_handling.py`, `error_handling_results.md`, `run_with_llm.py`
 
 ---
 
